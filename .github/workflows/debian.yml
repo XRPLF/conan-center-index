@@ -18,8 +18,8 @@ jobs:
         architecture:
           - platform: linux/amd64
             runner: ubuntu-24.04
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
+#          - platform: linux/arm64
+#            runner: ubuntu-24.04-arm
         docker:
           - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-12
 #          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-13
@@ -31,7 +31,7 @@ jobs:
 #          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-20
         package:
           - name: snappy
-            version: 1.10.0
+            version: 1.1.10
     runs-on: ${{ matrix.architecture.runner }}
     container: ${{ matrix.docker.image }}
     steps:
