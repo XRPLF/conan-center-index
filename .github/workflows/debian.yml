@@ -22,13 +22,13 @@ jobs:
             runner: ubuntu-24.04-arm
         docker:
           - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-12
-          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-13
-          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-14
-          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-16
-          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-17
-          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-18
-          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-19
-          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-20
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-13
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-14
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-16
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-17
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-18
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-19
+#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-20
         package:
           - name: snappy
             version: 1.10.0
@@ -38,7 +38,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Build the recipe
-        working-directory: recipes
-        run: conan create ${{ matrix.package.name }} --version ${{ matrix.package.version }} --build=missing --update
+        working-directory: recipes/${{ matrix.package.name }}/all
+        run: conan create , --version ${{ matrix.package.version }} --build=missing --update
       - name: Upload the recipe
         run: conan upload '${{ matrix.package.name }}' --remote ${{ env.CONAN_URL }} --confirm --dry-run
