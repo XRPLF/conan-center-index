@@ -1,6 +1,6 @@
-all --version=10.0.1 -o enable_sse=False \
-                     -o lite=False \
-                     -o use_rtti=True \
-                     -o with_jemalloc=False \
-                     -o with_lz4=True \
-                     -o with_snappy=True
+rocksdb/all --version=10.0.1 -o enable_sse=False \
+                             -o lite=False \
+                             -o use_rtti=True \
+                             -o with_jemalloc=False \
+                             -o with_lz4=True \
+                             -o with_snappy=True
