@@ -74,7 +74,7 @@ jobs:
               filename=${##../options/}
               recipe=${filename%.options}
               echo "Building recipe '${recipe}'."
-              conan create $(cat opts) \
+              conan create $(cat $opts) \
                   --build=missing \
                   --settings:all=build_type=${{ matrix.build.type }} \
                   --update \
