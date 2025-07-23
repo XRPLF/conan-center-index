@@ -21,11 +21,53 @@ env:
   CONAN_GLOBAL_CONF: |
     core.download:parallel={{ os.cpu_count() }}
     core.upload:parallel={{ os.cpu_count() }}
-    core:default_build_profile=libxrpl
-    core:default_profile=libxrpl
-    tools.build:jobs={{ (os.cpu_count() * 4/5) | int }}
+    core:default_build_profile=default
+    core:default_profile=default
     tools.build:verbosity=verbose
     tools.compilation:verbosity=verbose
+  CONAN_DEFAULT_OPTIONS: >-
+    -o assertions=False
+    -o coverage=False
+    -o fPIC=True
+    -o jemalloc=False
+    -o rocksdb=True
+    -o shared=False
+    -o static=True
+    -o tests=False
+    -o date/*:header_only=True
+    -o grpc/*:shared=False
+    -o grpc/*:secure=True
+    -o libarchive/*:shared=False
+    -o libarchive/*:with_acl=False
+    -o libarchive/*:with_bzip2=False
+    -o libarchive/*:with_cng=False
+    -o libarchive/*:with_expat=False
+    -o libarchive/*:with_iconv=False
+    -o libarchive/*:with_libxml2=False
+    -o libarchive/*:with_lz4=True
+    -o libarchive/*:with_lzma=False
+    -o libarchive/*:with_lzo=False
+    -o libarchive/*:with_nettle=False
+    -o libarchive/*:with_openssl=False
+    -o libarchive/*:with_pcreposix=False
+    -o libarchive/*:with_xattr=False
+    -o libarchive/*:with_zlib=False
+    -o lz4/*:shared=False
+    -o openssl/*:shared=False
+    -o protobuf/*:shared=False
+    -o protobuf/*:with_zlib=True
+    -o rocksdb/*:enable_sse=False
+    -o rocksdb/*:lite=False
+    -o rocksdb/*:shared=False
+    -o rocksdb/*:use_rtti=True
+    -o rocksdb/*:with_jemalloc=False
+    -o rocksdb/*:with_lz4=True
+    -o rocksdb/*:with_snappy=True
+    -o snappy/*:shared=False
+    -o soci/*:shared=False
+    -o soci/*:with_sqlite3=True
+    -o soci/*:with_boost=True
+    -o xxhash/*:shared=False
 
 jobs:
   build:
@@ -47,8 +89,8 @@ jobs:
           - type: Debug
 #          - type: Release
         package:
-          - name: snappy
-            version: 1.1.10
+          - name: rocksdb
+            version: 10.0.1
     runs-on: ${{ matrix.architecture.runner }}
     container: ${{ matrix.docker.image }}
     steps:
@@ -58,7 +100,6 @@ jobs:
         run: |
           echo "${CONAN_GLOBAL_CONF}" >> $(conan config home)/global.conf
           conan config install profiles/ -tf $(conan config home)/profiles/
-          conan profile show
       - name: Build the recipe
         working-directory: recipes/${{ matrix.package.name }}/all
         run: |
@@ -66,7 +107,8 @@ jobs:
                 --version ${{ matrix.package.version }} \
                 --build=missing \
                 --settings=build_type=${{ matrix.build.type }} \
-                --update
+                --update \
+                ${{ env.CONAN_DEFAULT_OPTIONS }}
       - name: Upload the recipe
         run: |
           conan upload '${{ matrix.package.name }}' \
