@@ -124,6 +124,6 @@ jobs:
       - name: Upload the recipe
         run: |
           conan upload '${{ matrix.package.name }}' \
-                --remote ${{ var.CONAN_URL }} \
+                --remote ${{ env.CONAN_REMOTE_URL }} \
                 --confirm \
                 --dry-run
