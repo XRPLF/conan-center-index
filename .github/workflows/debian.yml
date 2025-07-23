@@ -30,59 +30,59 @@ jobs:
       matrix:
         architecture:
           - runner: ubuntu-24.04
-#          - runner: ubuntu-24.04-arm
+          - runner: ubuntu-24.04-arm
         docker:
           - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-12
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-13
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-14
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-16
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-17
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-18
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-19
-#          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-20
+          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-13
+          - image: ghcr.io/xrplf/ci/debian-bookworm:gcc-14
+          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-16
+          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-17
+          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-18
+          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-19
+          - image: ghcr.io/xrplf/ci/debian-bookworm:clang-20
         build:
           - type: Debug
-#          - type: Release
+          - type: Release
         package:
-#          - name: boost
-#            version: 1.86.0
-#            directory: all
+          - name: boost
+            version: 1.86.0
+            directory: all
           - name: date
             version: 3.0.4
             directory: all
-#          - name: doctest
-#            version: 2.4.11
-#            directory: 2.x.x
-#          - name: grpc
-#            version: 1.72.0
-#            directory: all
-#          - name: libarchive
-#            version: 3.8.1
-#            directory: all
-#          - name: lz4
-#            version: 1.10.0
-#            directory: all
-#          - name: nudb
-#            version: 2.0.9
-#            directory: all
-#          - name: openssl
-#            version: 1.1.1w
-#            directory: 1.x.x
-#          - name: protobuf
-#            version: 6.30.1
-#            directory: all
-#          - name: rocksdb
-#            version: 10.0.1
-#            directory: all
-#          - name: sqlite3
-#            version: 3.49.1
-#            directory: all
-#          - name: xxhash
-#            version: 0.8.3
-#            directory: all
-#          - name: zlib
-#            version: 1.3.1
-#            directory: all
+          - name: doctest
+            version: 2.4.11
+            directory: 2.x.x
+          - name: grpc
+            version: 1.72.0
+            directory: all
+          - name: libarchive
+            version: 3.8.1
+            directory: all
+          - name: lz4
+            version: 1.10.0
+            directory: all
+          - name: nudb
+            version: 2.0.9
+            directory: all
+          - name: openssl
+            version: 1.1.1w
+            directory: 1.x.x
+          - name: protobuf
+            version: 6.30.1
+            directory: all
+          - name: rocksdb
+            version: 10.0.1
+            directory: all
+          - name: sqlite3
+            version: 3.49.1
+            directory: all
+          - name: xxhash
+            version: 0.8.3
+            directory: all
+          - name: zlib
+            version: 1.3.1
+            directory: all
     runs-on: ${{ matrix.architecture.runner }}
     container: ${{ matrix.docker.image }}
     steps:
