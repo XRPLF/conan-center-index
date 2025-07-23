@@ -15,10 +15,15 @@ defaults:
     shell: bash
 
 env:
-  CONAN_URL: ${{ secrets.CONAN_URL }}
+  # Note that `conan user` implicitly uses the environment variables
+  # `CONAN_LOGIN_USERNAME_<REMOTE>` and `CONAN_PASSWORD_<REMOTE>`, see also
+  # https://docs.conan.io/2/reference/environment.html#remote-login-variables.
+  CONAN_REMOTE_URL: https://conan.ripplex.io
+  CONAN_REMOTE_NAME: xrplf
   CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.CONAN_USERNAME }}
   CONAN_PASSWORD_XRPLF: ${{ secrets.CONAN_PASSWORD }}
   CONAN_GLOBAL_CONF: |
+    core:non_interactive=True
     core.download:parallel={{ os.cpu_count() }}
     core.upload:parallel={{ os.cpu_count() }}
     core:default_build_profile=default
@@ -81,8 +86,10 @@ jobs:
           - type: Debug
 #          - type: Release
         package:
-          - name: rocksdb
-            version: 10.0.1
+          - name: snappy
+            version: 1.1.10
+#          - name: rocksdb
+#            version: 10.0.1
     runs-on: ${{ matrix.architecture.runner }}
     container: ${{ matrix.docker.image }}
     steps:
@@ -92,6 +99,19 @@ jobs:
         run: |
           echo "${CONAN_GLOBAL_CONF}" >> $(conan config home)/global.conf
           conan config install profiles/ -tf $(conan config home)/profiles/
+      - name: Add Conan remote
+        run: |
+          conan remote list
+          if conan remote list | grep -q '${{ env.CONAN_REMOTE_NAME }}'; then
+              conan remote remove ${{ env.CONAN_REMOTE_NAME }}
+              echo "Removed existing conan remote '${{ env.CONAN_REMOTE_NAME }}'."
+          fi
+          conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
+          echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
+      - name: Verify Conan remote
+        run: |
+          conan remote auth ${{ env.CONAN_REMOTE_NAME }} --force
+          conan remote list-users
       - name: Build the recipe
         working-directory: recipes/${{ matrix.package.name }}/all
         run: |
@@ -104,6 +124,6 @@ jobs:
       - name: Upload the recipe
         run: |
           conan upload '${{ matrix.package.name }}' \
-                --remote ${{ env.CONAN_URL }} \
+                --remote ${{ var.CONAN_URL }} \
                 --confirm \
                 --dry-run
