@@ -88,30 +88,43 @@ jobs:
         package:
           - name: boost
             version: 1.86.0
+            directory: all
           - name: date
             version: 3.0.4
+            directory: all
           - name: doctest
             version: 2.4.11
+            directory: 2.x.x
           - name: grpc
             version: 1.72.0
+            directory: all
           - name: libarchive
             version: 3.8.1
+            directory: all
           - name: lz4
             version: 1.10.0
+            directory: all
           - name: nudb
             version: 2.0.9
+            directory: all
           - name: openssl
             version: 1.1.1w
+            directory: 1.x.x
           - name: protobuf
             version: 6.30.1
+            directory: all
           - name: rocksdb
             version: 10.0.1
+            directory: all
           - name: sqlite3
             version: 3.49.1
+            directory: all
           - name: xxhash
             version: 0.83.0
+            directory: all
           - name: zlib
             version: 1.3.1
+            directory: all
     runs-on: ${{ matrix.architecture.runner }}
     container: ${{ matrix.docker.image }}
     steps:
@@ -135,7 +148,7 @@ jobs:
           conan remote auth ${{ env.CONAN_REMOTE_NAME }} --force
           conan remote list-users
       - name: Build the recipe
-        working-directory: recipes/${{ matrix.package.name }}/all
+        working-directory: recipes/${{ matrix.package.name }}/{{ matrix.package.directory }}
         run: |
           conan create .  \
                 --version ${{ matrix.package.version }} \
