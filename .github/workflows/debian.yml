@@ -148,12 +148,12 @@ jobs:
           conan remote auth ${{ env.CONAN_REMOTE_NAME }} --force
           conan remote list-users
       - name: Build the recipe
-        working-directory: recipes/${{ matrix.package.name }}/{{ matrix.package.directory }}
+        working-directory: recipes/${{ matrix.package.name }}/${{ matrix.package.directory }}
         run: |
           conan create .  \
                 --version ${{ matrix.package.version }} \
                 --build=missing \
-                --settings=build_type=${{ matrix.build.type }} \
+                --settings:all=build_type=${{ matrix.build.type }} \
                 --update \
                 ${{ env.CONAN_DEFAULT_OPTIONS }}
       - name: Upload the recipe
