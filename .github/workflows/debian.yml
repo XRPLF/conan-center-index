@@ -120,7 +120,7 @@ jobs:
             version: 3.49.1
             directory: all
           - name: xxhash
-            version: 0.83.0
+            version: 0.8.3
             directory: all
           - name: zlib
             version: 1.3.1
