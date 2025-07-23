@@ -26,14 +26,6 @@ env:
     tools.build:verbosity=verbose
     tools.compilation:verbosity=verbose
   CONAN_DEFAULT_OPTIONS: >-
-    -o assertions=False
-    -o coverage=False
-    -o fPIC=True
-    -o jemalloc=False
-    -o rocksdb=True
-    -o shared=False
-    -o static=True
-    -o tests=False
     -o date/*:header_only=True
     -o grpc/*:shared=False
     -o grpc/*:secure=True
