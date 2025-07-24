@@ -26,10 +26,11 @@ env:
 jobs:
   export:
     runs-on: ubuntu-latest
-    container: ghcr.io/xrplf/ci/debian-bookworm:gcc-12
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Install Conan
+        uses: conan-io/setup-conan@v1
       - name: Add Conan remote
         run: |
           conan remote list
@@ -46,14 +47,6 @@ jobs:
       - name: Export the recipes
         working-directory: recipes
         run: |
-          # Loop over all recipes listed in the exports directory.
-          for export in ../exports/*.json; do
-              # Extract the recipe name, version, and directory.
-              name=$(jq -r '.name' ${export})
-              dir=$(jq -r '.dir' ${export})
-              version=$(jq -r '.version' ${export})
-              # Export the recipe.
-              conan export "${name}/${dir}" \
-                  --version="${version}" \
-                  --remote ${{ env.CONAN_REMOTE_NAME }}
-          done
+          conan export protobuf/all --version=6.30.1 --remote ${{ env.CONAN_REMOTE_NAME }}
+          conan export snappy/all --version=1.1.10 --remote ${{ env.CONAN_REMOTE_NAME }}
+          conan export soci/all --version=4.0.3 --remote ${{ env.CONAN_REMOTE_NAME }}
