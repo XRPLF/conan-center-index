@@ -39,6 +39,10 @@ jobs:
           fi
           conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
           echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
+      - name: Verify Conan remote
+        run: |
+          conan remote auth ${{ env.CONAN_REMOTE_NAME }} --force
+          conan remote list-users
       - name: Export the recipes
         working-directory: recipes
         run: |
