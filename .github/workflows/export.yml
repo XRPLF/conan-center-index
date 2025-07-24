@@ -22,10 +22,6 @@ env:
   CONAN_REMOTE_NAME: xrplf
   CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.CONAN_USERNAME }}
   CONAN_PASSWORD_XRPLF: ${{ secrets.CONAN_PASSWORD }}
-  CONAN_EXPORTS: >-
-    protobuf/all
-    snappy/all
-    soci/all
 
 jobs:
   build:
@@ -46,8 +42,15 @@ jobs:
       - name: Export the recipes
         working-directory: recipes
         run: |
-          # Loop over all recipes to export.
-          IFS=' ' read -ra EXPORTS <<< '${{ env.CONAN_EXPORTS }}'
-          for EXPORT in "${EXPORTS[@]}"; do
-            conan export "${EXPORT}" --remote ${{ env.CONAN_REMOTE_NAME }}
+          # Loop over all recipes listed in the exports directory.
+          for export in ../exports/*.json; do
+              # Extract the recipe name, version, and directory.
+              name=$(jq -r '.name' ${export})
+              dir=$(jq -r '.dir' ${export})
+              version=$(jq -r '.version' ${export})
+              # Export the recipe.
+              echo "Exporting recipe '${name}@${version}' from directory '${dir}'."
+              conan export "${name}/${dir}" \
+                  --version="${version}" \
+                  --remote ${{ env.CONAN_REMOTE_NAME }}
           done
