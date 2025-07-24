@@ -28,11 +28,6 @@ jobs:
         uses: conan-io/setup-conan@v1
       - name: Add Conan remote
         run: |
-          conan remote list
-          if conan remote list | grep -q '${{ env.CONAN_REMOTE_NAME }}'; then
-              conan remote remove ${{ env.CONAN_REMOTE_NAME }}
-              echo "Removed existing conan remote '${{ env.CONAN_REMOTE_NAME }}'."
-          fi
           conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
           echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
       - name: Log into Conan remote
