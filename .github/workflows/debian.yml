@@ -3,9 +3,9 @@ name: Debian
 on:
   push:
     paths:
-      - .github/workflows/debian.yml
-      - configs
-      - recipes
+      - '.github/workflows/debian.yml'
+      - 'configs/**'
+      - 'recipes/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
