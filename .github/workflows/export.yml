@@ -49,7 +49,6 @@ jobs:
               dir=$(jq -r '.dir' ${export})
               version=$(jq -r '.version' ${export})
               # Export the recipe.
-              echo "Exporting recipe '${name}@${version}' from directory '${dir}'."
               conan export "${name}/${dir}" \
                   --version="${version}" \
                   --remote ${{ env.CONAN_REMOTE_NAME }}
