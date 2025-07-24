@@ -47,7 +47,7 @@ jobs:
         working-directory: recipes
         run: |
           # Loop over all recipes to export.
-          IFS=',' read -ra EXPORTS <<< '${{ env.CONAN_EXPORTS }}'
+          IFS=' ' read -ra EXPORTS <<< '${{ env.CONAN_EXPORTS }}'
           for EXPORT in "${EXPORTS[@]}"; do
             conan export "${EXPORT}" --remote ${{ env.CONAN_REMOTE_NAME }}
           done
