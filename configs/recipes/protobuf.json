@@ -1,0 +1,10 @@
+{
+  "name": "protobuf",
+  "dir": "all",
+  "version": "6.30.1",
+  "options": [
+    "shared=False",
+    "fPIC=True",
+    "with_zlib=True"
+  ]
+}

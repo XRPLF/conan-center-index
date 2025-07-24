@@ -1,0 +1,12 @@
+{
+  "name": "rocksdb",
+  "dir": "all",
+  "version": "10.0.1",
+  "options": [
+    "shared=False",
+    "fPIC=True",
+    "use_rtti=True",
+    "with_lz4=True",
+    "with_snappy=True"
+  ]
+}

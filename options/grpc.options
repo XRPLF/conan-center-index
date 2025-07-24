@@ -1,1 +1,0 @@
-grpc/all --version=1.72.0 -o secure=True

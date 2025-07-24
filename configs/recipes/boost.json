@@ -1,0 +1,9 @@
+{
+  "name": "boost",
+  "dir": "all",
+  "version": "1.86.0",
+  "options": [
+    "shared=False",
+    "fPIC=True"
+  ]
+}

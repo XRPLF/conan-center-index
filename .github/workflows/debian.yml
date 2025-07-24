@@ -68,17 +68,23 @@ jobs:
       - name: Build the recipes
         working-directory: recipes
         run: |
-          # Loop over all recipe option files in the `options` directory. Each
-          # option file contains the path to the recipe and the options to use.
-          for opts in ../options/*; do
-              filename=${##../options/}
-              recipe=${filename%.options}
-              echo "Building recipe '${recipe}'."
-              conan create $(cat $opts) \
+          # Loop over all recipe config files.
+          for config in ../configs/recipes/*.json; do
+              json=${config##../configs/recipes/}
+              # Extract the recipe name, directory, version, and options.
+              name=$(jq -r '.name' ${config})
+              dir=$(jq -r '.dir' ${config})
+              version=$(jq -r '.version' ${config})
+              opts=$(jq -r '.options | join(" -o ") | if length == 0 then "" else "-o " + . end' ${config})
+              # Create the recipe.
+              echo "Creating recipe '${name}@${version} with options ${opts}'."
+              conan create ${dir} \
+                  --name=${name} \
+                  --version=${version} \
                   --build=missing \
                   --settings:all=build_type=${{ matrix.build.type }} \
                   --update \
-                  -o shared=False -o fPIC=True
+                  ${opts}
           done
       - name: Upload the recipes (dry-run)
         if: ${{ github.ref_type == 'branch' && github.ref_name != github.event.repository.default_branch }}

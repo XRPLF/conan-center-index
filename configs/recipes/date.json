@@ -1,0 +1,10 @@
+{
+  "name": "date",
+  "dir": "all",
+  "version": "3.0.4",
+  "options": [
+    "shared=False",
+    "fPIC=True",
+    "header_only=True"
+  ]
+}

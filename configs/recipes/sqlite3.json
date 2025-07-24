@@ -1,0 +1,9 @@
+{
+  "name": "sqlite3",
+  "dir": "all",
+  "version": "3.49.1",
+  "options": [
+    "shared=False",
+    "fPIC=True"
+  ]
+}

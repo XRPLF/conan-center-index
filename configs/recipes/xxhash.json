@@ -1,0 +1,9 @@
+{
+  "name": "xxhash",
+  "dir": "all",
+  "version": "0.8.3",
+  "options": [
+    "shared=False",
+    "fPIC=True"
+  ]
+}
