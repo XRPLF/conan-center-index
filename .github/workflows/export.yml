@@ -3,7 +3,7 @@ name: Export
 on:
   push:
     paths:
-      - 'export.yml'
+      - '.github/workflows/export.yml'
       - 'recipes/**'
 
 concurrency:
