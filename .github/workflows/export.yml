@@ -24,7 +24,7 @@ env:
   CONAN_PASSWORD_XRPLF: ${{ secrets.CONAN_PASSWORD }}
 
 jobs:
-  build:
+  export:
     runs-on: ubuntu-latest
     container: ghcr.io/xrplf/ci/debian-bookworm:gcc-12
     steps:
