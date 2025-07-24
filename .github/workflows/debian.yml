@@ -72,11 +72,14 @@ jobs:
           # Loop over all recipe config files.
           for config in ../configs/recipes/*.json; do
               json=${config##../configs/recipes/}
-              # Extract the recipe name, directory, version, and options.
+              # Extract the recipe name, directory, version, and options. Note
+              # that Conan expects the options to be scoped with either '&:'
+              # meaning only the current recipe or '*:' meaning all dependent
+              # recipes as well; we use the latter here.
               name=$(jq -r '.name' ${config})
               dir=$(jq -r '.dir' ${config})
               version=$(jq -r '.version' ${config})
-              opts=$(jq -r '.options | join(" -o ") | if length == 0 then "" else "-o " + . end' ${config})
+              opts=$(jq -r '.options | join(" -o *:") | if length == 0 then "" else "-o *:" + . end' ${config})
               # Create the recipe.
               echo "Creating recipe '${name}@${version}' with options '${opts}'."
               conan create ${name}/${dir} \
