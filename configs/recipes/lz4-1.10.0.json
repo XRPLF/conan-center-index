@@ -1,9 +1,0 @@
-{
-  "name": "lz4",
-  "dir": "all",
-  "version": "1.10.0",
-  "options": [
-    "shared=False",
-    "fPIC=True"
-  ]
-}
