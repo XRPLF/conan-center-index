@@ -129,6 +129,10 @@ class WasmMicroRuntimeConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["iwasm" if self.options.shared else "vmlib"]
+        # self.cpp_info.libs = ["iwasm"]
+        self.cpp_info.set_property("cmake_file_name", "wamr")
+        self.cpp_info.set_property("cmake_target_name", "wamr")
+
         if self.settings.os == "Windows" and not self.options.shared:
             self.cpp_info.defines.append("COMPILING_WASM_RUNTIME_API=0")
 
