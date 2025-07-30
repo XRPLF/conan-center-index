@@ -15,7 +15,7 @@ defaults:
     shell: bash
 
 env:
-  CONAN_REMOTE_URL: https://conan.ripplex.io
+  CONAN_REMOTE_URL: http://18.143.149.228:8081/artifactory/api/conan/recipes
   CONAN_REMOTE_NAME: xrplf
 
 jobs:
