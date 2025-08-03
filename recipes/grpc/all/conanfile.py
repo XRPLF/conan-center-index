@@ -71,6 +71,10 @@ class GrpcConan(ConanFile):
     def _supports_libsystemd(self):
         return self.settings.os in ["Linux", "FreeBSD"] and Version(self.version) >= "1.52"
 
+    @property
+    def _is_clang_cl(self):
+        return self.settings.os == "Windows" and self.settings.compiler == "clang"
+
     def export(self):
         copy(self, f"target_info/grpc_{self.version}.yml", src=self.recipe_folder, dst=self.export_folder)
 
