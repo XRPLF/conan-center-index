@@ -14,9 +14,6 @@ class WasmXrplfConan(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
-    def export_sources(self):
-        pass
-
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
@@ -65,4 +62,3 @@ class WasmXrplfConan(ConanFile):
         self.cpp_info.libs = ["iwasm"]
         self.cpp_info.names["cmake_find_package"] = "wasm-xrplf"
         self.cpp_info.names["cmake_find_package_multi"] = "wasm-xrplf"
-
