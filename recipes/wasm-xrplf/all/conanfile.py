@@ -10,7 +10,7 @@ class WasmXrplfConan(ConanFile):
     license = "Apache-2.0"
     url = "https://github.com/ripple/wasm-micro-runtime.git"
     package_type = "library"
-    settings = "os", "compiler", "build_type", "arch"
+    settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
