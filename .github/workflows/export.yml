@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Install Conan
-        uses: conan-io/setup-conan@v1
+        uses: conan-io/setup-conan@09566912d661de90608308897a4d513e850c04e8 # v1.2.0
       - name: Export the recipes
         working-directory: recipes
         run: |
