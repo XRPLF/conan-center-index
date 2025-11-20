@@ -41,12 +41,10 @@ jobs:
           conan export soci/all --version=4.0.3
           conan export wasm-xrplf/all --version=2.4.1-xrplf
       - name: Add Conan remote
-        if: ${{ github.repository_owner == 'XRPLF' }}
         run: |
           conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
           echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
       - name: Upload the recipes (dry run)
-        if: ${{ github.repository_owner == 'XRPLF' }}
         run: conan upload '*' --confirm --check --only-recipe --remote ${{ env.CONAN_REMOTE_NAME }} --dry-run
       - name: Log into Conan remote
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
