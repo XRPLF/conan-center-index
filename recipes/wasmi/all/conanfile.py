@@ -26,12 +26,16 @@ class WasmiConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
+        apply_conandata_patches(self)
+
+    def validate(self):
+        assert not self.options.shared, "shared must be False"
 
     def generate(self):
         tc = CMakeToolchain(self)
 
         tc.variables["CMAKE_CXX_STANDARD"] = 20
-        tc.variables["BUILD_SHARED_LIBS"] = 0
+        tc.variables["BUILD_SHARED_LIBS"] = self.options.shared
 
         tc.generate()
 
@@ -39,7 +43,6 @@ class WasmiConan(ConanFile):
         deps.generate()
 
     def build(self):
-        apply_conandata_patches(self)
         cmake = CMake(self)
         cmake.configure(build_script_folder=os.path.join(self.source_folder, "crates", "c_api"))
         cmake.build()
