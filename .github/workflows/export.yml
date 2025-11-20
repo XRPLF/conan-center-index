@@ -7,7 +7,7 @@ on:
       - 'recipes/**'
   push:
     branches:
-      - main
+      - master
     paths:
       - '.github/workflows/export.yml'
       - 'recipes/**'
@@ -29,6 +29,7 @@ jobs:
       - name: Install Conan
         uses: conan-io/setup-conan@v1
       - name: Add Conan remote
+        if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
         run: |
           conan remote add --index 0 ${{ vars.CONAN_REMOTE_NAME }} ${{ vars.CONAN_REMOTE_URL }}
           echo "Added new conan remote '${{ vars.CONAN_REMOTE_NAME }}' at ${{ vars.CONAN_REMOTE_URL }}."
