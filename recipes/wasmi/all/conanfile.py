@@ -41,7 +41,6 @@ class WasmiConan(ConanFile):
     def build(self):
         apply_conandata_patches(self)
         cmake = CMake(self)
-        cmake.verbose = True
         cmake.configure(build_script_folder=os.path.join(self.source_folder, "crates", "c_api"))
         cmake.build()
 
@@ -54,4 +53,3 @@ class WasmiConan(ConanFile):
         self.cpp_info.libs = ["wasmi"]
         self.cpp_info.names["cmake_find_package"] = "wasmi"
         self.cpp_info.names["cmake_find_package_multi"] = "wasmi"
-
