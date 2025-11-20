@@ -1,7 +1,13 @@
 name: Export
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/export.yml'
+      - 'recipes/**'
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/export.yml'
       - 'recipes/**'
