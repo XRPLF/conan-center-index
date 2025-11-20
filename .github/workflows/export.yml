@@ -20,6 +20,10 @@ defaults:
   run:
     shell: bash
 
+env:
+  CONAN_REMOTE_NAME: xrplf
+  CONAN_REMOTE_URL: https://conan.ripplex.io
+
 jobs:
   export:
     runs-on: ubuntu-latest
@@ -28,16 +32,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Conan
         uses: conan-io/setup-conan@v1
-      - name: Add Conan remote
-        if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
-        run: |
-          conan remote add --index 0 ${{ vars.CONAN_REMOTE_NAME }} ${{ vars.CONAN_REMOTE_URL }}
-          echo "Added new conan remote '${{ vars.CONAN_REMOTE_NAME }}' at ${{ vars.CONAN_REMOTE_URL }}."
-      - name: Log into Conan remote
-        if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
-        run: |
-          conan remote login ${{ vars.CONAN_REMOTE_NAME }} ${{ secrets.CONAN_REMOTE_USERNAME }} --password "${{ secrets.CONAN_REMOTE_PASSWORD }}"
-          conan remote list-users
       - name: Export the recipes
         working-directory: recipes
         run: |
@@ -46,8 +40,19 @@ jobs:
           conan export snappy/all --version=1.1.10
           conan export soci/all --version=4.0.3
           conan export wasm-xrplf/all --version=2.4.1-xrplf
+      - name: Add Conan remote
+        if: ${{ github.repository_owner == 'XRPLF' }}
+        run: |
+          conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
+          echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
       - name: Upload the recipes (dry run)
-        run: conan upload '*' --confirm --check --only-recipe --remote ${{ vars.CONAN_REMOTE_NAME }} --dry-run
+        if: ${{ github.repository_owner == 'XRPLF' }}
+        run: conan upload '*' --confirm --check --only-recipe --remote ${{ env.CONAN_REMOTE_NAME }} --dry-run
+      - name: Log into Conan remote
+        if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
+        run: |
+          conan remote login ${{ env.CONAN_REMOTE_NAME }} ${{ secrets.CONAN_REMOTE_USERNAME }} --password "${{ secrets.CONAN_REMOTE_PASSWORD }}"
+          conan remote list-users
       - name: Upload the recipes
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
-        run: conan upload '*' --confirm --check --only-recipe --remote ${{ vars.CONAN_REMOTE_NAME }}
+        run: conan upload '*' --confirm --check --only-recipe --remote ${{ env.CONAN_REMOTE_NAME }}
