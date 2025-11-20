@@ -5,9 +5,9 @@ index b15c787a..2420bea2 100644
 @@ -43,6 +43,11 @@ endif()
  list(TRANSFORM WASMI_SHARED_FILES PREPEND ${WASMI_TARGET_DIR}/)
  list(TRANSFORM WASMI_STATIC_FILES PREPEND ${WASMI_TARGET_DIR}/)
- 
+
 +if(NOT BUILD_SHARED_LIBS)
-+  set(WASMI_SHARED_FILES )
++  set(WASMI_SHARED_FILES)
 +endif()
 +
 +
@@ -17,7 +17,7 @@ index b15c787a..2420bea2 100644
 @@ -112,23 +117,25 @@ install(
      DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
- 
+
 -if(WASMI_TARGET MATCHES "darwin")
 -    set(INSTALLED_LIB "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libwasmi.dylib")
 -    install(
@@ -55,15 +55,15 @@ index b15c787a..2420bea2 100644
 +        endif()
      endif()
  endif()
- 
+
 diff --git a/crates/c_api/include/wasm.h b/crates/c_api/include/wasm.h
 index 5ee617ff..0199192d 100644
 --- a/crates/c_api/include/wasm.h
 +++ b/crates/c_api/include/wasm.h
 @@ -146,6 +146,13 @@ WASM_DECLARE_OWN(store)
- 
+
  WASM_API_EXTERN own wasm_store_t* wasm_store_new(wasm_engine_t*);
- 
+
 +// Store fuel functions (forward declarations)
 +struct wasmi_error;
 +
@@ -71,7 +71,7 @@ index 5ee617ff..0199192d 100644
 +WASM_API_EXTERN struct wasmi_error* wasm_store_set_fuel(wasm_store_t*, uint64_t fuel);
 +//WASM_API_EXTERN void *wasm_store_get_data(const wasm_store_t*);
 +//WASM_API_EXTERN void wasm_store_set_data(wasm_store_t*, void *data);
- 
+
  ///////////////////////////////////////////////////////////////////////////////
  // Type Representations
 diff --git a/crates/c_api/include/wasmi.h b/crates/c_api/include/wasmi.h
@@ -98,7 +98,7 @@ index 2caffa37..0c0584ec 100644
   */
 -#define WASMI_VERSION_PATCH 0
 +#define WASMI_VERSION_PATCH 1
- 
+
  #endif // WASMI_H
 diff --git a/crates/c_api/src/store.rs b/crates/c_api/src/store.rs
 index 56d4898f..543dbff8 100644
