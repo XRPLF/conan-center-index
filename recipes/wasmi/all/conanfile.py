@@ -12,14 +12,11 @@ class WasmiConan(ConanFile):
     description = "WebAssembly (Wasm) interpreter"
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"shared": [True, False]}
+    options = {"shared": [False]}
     default_options = {"shared": False}
 
     def export_sources(self):
         export_conandata_patches(self)
-
-    def config_options(self):
-        pass
 
     def layout(self):
         cmake_layout(self, src_folder="src")
@@ -28,15 +25,9 @@ class WasmiConan(ConanFile):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
         apply_conandata_patches(self)
 
-    def validate(self):
-        assert not self.options.shared, "shared must be False"
-
     def generate(self):
         tc = CMakeToolchain(self)
-
-        tc.variables["CMAKE_CXX_STANDARD"] = 20
         tc.variables["BUILD_SHARED_LIBS"] = self.options.shared
-
         tc.generate()
 
         deps = CMakeDeps(self)
@@ -49,7 +40,6 @@ class WasmiConan(ConanFile):
 
     def package(self):
         cmake = CMake(self)
-        cmake.verbose = True
         cmake.install()
 
     def package_info(self):
