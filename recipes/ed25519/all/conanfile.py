@@ -1,9 +1,16 @@
-from conan import ConanFile, tools
-from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
-from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get
+import os
+
+from conan import ConanFile
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.files import (
+    apply_conandata_patches,
+    copy,
+    export_conandata_patches,
+)
 from conan.tools.scm import Git
 
 required_conan_version = ">=2.0.0"
+
 
 class EdDonnaConan(ConanFile):
     name = "ed25519"
@@ -25,7 +32,12 @@ class EdDonnaConan(ConanFile):
         self.requires("openssl/[>=1.1 <4]")
 
     def export_sources(self):
-        copy(self, "CMakeLists.txt", src=self.recipe_folder, dst=self.export_sources_folder+"/src")
+        copy(
+            self,
+            "CMakeLists.txt",
+            src=self.recipe_folder,
+            dst=self.export_sources_folder,
+        )
         export_conandata_patches(self)
 
     def config_options(self):
@@ -42,6 +54,7 @@ class EdDonnaConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
+        tc.variables["ED25519_DONNA_SRC_DIR"] = self.source_folder.replace("\\", "/")
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()
@@ -49,7 +62,7 @@ class EdDonnaConan(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake.verbose = True
-        cmake.configure()
+        cmake.configure(build_script_folder=os.path.join(self.source_folder, os.pardir))
         cmake.build()
 
     def package(self):
