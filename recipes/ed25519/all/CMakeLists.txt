@@ -13,7 +13,7 @@ if(NOT TARGET OpenSSL::SSL)
 endif()
 
 add_library(ed25519 STATIC
-  ed25519.c
+  ${ED25519_DONNA_SRC_DIR}/ed25519.c
 )
 add_library(ed25519::ed25519 ALIAS ed25519)
 target_link_libraries(ed25519 PUBLIC OpenSSL::SSL)
@@ -46,6 +46,6 @@ install(
   NAMESPACE ${PROJECT_NAME}::
 )
 install(
-  FILES ed25519.h
+  FILES ${ED25519_DONNA_SRC_DIR}/ed25519.h
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
