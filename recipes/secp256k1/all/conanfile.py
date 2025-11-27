@@ -47,5 +47,5 @@ class SecpConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["secp256k1"]
-        self.cpp_info.names["cmake_find_package"] = "secp256k1"
-        self.cpp_info.names["cmake_find_package_multi"] = "secp256k1"
+        self.cpp_info.set_property("cmake_find_package", "secp256k1")
+        self.cpp_info.set_property("cmake_find_package_multi", "secp256k1")
