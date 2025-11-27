@@ -1,6 +1,6 @@
 from conan import ConanFile, tools
 from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
-from conan.tools.files import apply_conandata_patches, export_conandata_patches, get
+from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get
 from conan.tools.scm import Git
 
 required_conan_version = ">=2.0.0"
@@ -15,6 +15,7 @@ class EdDonnaConan(ConanFile):
     default_options = {"shared": False, "fPIC": True}
 
     def export_sources(self):
+        copy(self, "CMakeLists.txt", src=self.recipe_folder, dst=self.export_sources_folder+"/src")
         export_conandata_patches(self)
 
     def config_options(self):
@@ -32,8 +33,6 @@ class EdDonnaConan(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self)
         tc.generate()
-        deps = CMakeDeps(self)
-        deps.generate()
 
     def build(self):
         cmake = CMake(self)
@@ -50,6 +49,3 @@ class EdDonnaConan(ConanFile):
         self.cpp_info.libs = ["ed25519"]
         self.cpp_info.names["cmake_find_package"] = "ed25519"
         self.cpp_info.names["cmake_find_package_multi"] = "ed25519"
-
-    def package_id(self):
-        self.info.clear()
