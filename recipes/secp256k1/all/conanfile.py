@@ -26,16 +26,13 @@ class SecpConan(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self)
         # Disable all tests and benchmarks.
-        tc.variables["SECP256K1_INSTALL"] = 1
-        tc.variables["SECP256K1_BUILD_BENCHMARK"] = 0
-        tc.variables["SECP256K1_BUILD_TESTS"] = 0
-        tc.variables["SECP256K1_BUILD_EXHAUSTIVE_TESTS"] = 0
-        tc.variables["SECP256K1_BUILD_CTIME_TESTS"] = 0
-        tc.variables["SECP256K1_BUILD_EXAMPLES"] = 0
+        tc.variables["SECP256K1_INSTALL"] = True
+        tc.variables["SECP256K1_BUILD_BENCHMARK"] = False
+        tc.variables["SECP256K1_BUILD_TESTS"] = False
+        tc.variables["SECP256K1_BUILD_EXHAUSTIVE_TESTS"] = False
+        tc.variables["SECP256K1_BUILD_CTIME_TESTS"] = False
+        tc.variables["SECP256K1_BUILD_EXAMPLES"] = False
         tc.generate()
-
-        deps = CMakeDeps(self)
-        deps.generate()
 
     def build(self):
         cmake = CMake(self)
@@ -52,6 +49,3 @@ class SecpConan(ConanFile):
         self.cpp_info.libs = ["secp256k1"]
         self.cpp_info.names["cmake_find_package"] = "secp256k1"
         self.cpp_info.names["cmake_find_package_multi"] = "secp256k1"
-
-    def package_id(self):
-        self.info.clear()
