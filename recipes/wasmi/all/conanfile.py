@@ -41,5 +41,3 @@ class WasmiConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["wasmi"]
-        self.cpp_info.names["cmake_find_package"] = "wasmi"
-        self.cpp_info.names["cmake_find_package_multi"] = "wasmi"
