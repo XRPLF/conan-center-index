@@ -72,5 +72,5 @@ class EdDonnaConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["ed25519"]
-        self.cpp_info.names["cmake_find_package"] = "ed25519"
-        self.cpp_info.names["cmake_find_package_multi"] = "ed25519"
+        self.cpp_info.set_property("cmake_file_name", "ed25519")
+        self.cpp_info.set_property("cmake_target_name", "ed25519::ed25519")
