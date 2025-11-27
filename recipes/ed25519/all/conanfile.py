@@ -11,8 +11,18 @@ class EdDonnaConan(ConanFile):
     url = "https://github.com/floodyberry/ed25519-donna.git"
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"shared": [True, False], "fPIC": [True, False]}
-    default_options = {"shared": False, "fPIC": True}
+    options = {
+        "shared": [True, False],
+        "fPIC": [True, False],
+    }
+    default_options = {
+        "shared": False,
+        "fPIC": True,
+        "openssl/*:shared": False,
+    }
+
+    def requirements(self):
+        self.requires("openssl/[>=1.1 <4]")
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", src=self.recipe_folder, dst=self.export_sources_folder+"/src")
@@ -33,6 +43,8 @@ class EdDonnaConan(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self)
         tc.generate()
+        deps = CMakeDeps(self)
+        deps.generate()
 
     def build(self):
         cmake = CMake(self)
