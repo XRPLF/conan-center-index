@@ -1,8 +1,9 @@
 from conan import ConanFile, tools
-from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.files import get
 
 required_conan_version = ">=2.0.0"
+
 
 class SecpConan(ConanFile):
     name = "secp256k1"
@@ -47,5 +48,5 @@ class SecpConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["secp256k1"]
-        self.cpp_info.set_property("cmake_find_package", "secp256k1")
-        self.cpp_info.set_property("cmake_find_package_multi", "secp256k1")
+        self.cpp_info.set_property("cmake_file_name", "secp256k1")
+        self.cpp_info.set_property("cmake_target_name", "secp256k1::secp256k1")
