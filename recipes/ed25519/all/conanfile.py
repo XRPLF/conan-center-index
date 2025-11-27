@@ -74,3 +74,4 @@ class EdDonnaConan(ConanFile):
         self.cpp_info.libs = ["ed25519"]
         self.cpp_info.set_property("cmake_file_name", "ed25519")
         self.cpp_info.set_property("cmake_target_name", "ed25519::ed25519")
+        self.cpp_info.requires = ["openssl::ssl"]
