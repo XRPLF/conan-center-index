@@ -31,7 +31,7 @@ patches:
     - patch_file: "patches/0001-fix-absl-gcc-ubsan-constexpr-bug.patch"
       patch_description: "Gcc ubsan constexpr compilation fix."
       patch_type: "bugfix"
-      patch_source: "https://github.com/abseil/abseil-cpp/commit/60d1ce9911e6b32ea0c5a2fcfc120f9b392d5643"
+      patch_source: "https://github.com/abseil/abseil-cpp/issues/1634#issuecomment-2576011026"
   "20240722.1":
     - patch_file: "patches/0003-absl-string-libm-20240116.patch"
       patch_description: "link libm to absl string"
