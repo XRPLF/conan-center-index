@@ -1,5 +1,5 @@
 diff --git a/crates/c_api/CMakeLists.txt b/crates/c_api/CMakeLists.txt
-index b15c787a..54eaed2d 100644
+index b15c787..54eaed2 100644
 --- a/crates/c_api/CMakeLists.txt
 +++ b/crates/c_api/CMakeLists.txt
 @@ -6,6 +6,8 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
@@ -67,7 +67,7 @@ index b15c787a..54eaed2d 100644
 -    COMMENT "clang-format: Apply formatting rules for Wasmi C-API header files"
 -)
 diff --git a/crates/c_api/include/wasm.h b/crates/c_api/include/wasm.h
-index 5ee617ff..a76f10e0 100644
+index 5ee617f..a76f10e 100644
 --- a/crates/c_api/include/wasm.h
 +++ b/crates/c_api/include/wasm.h
 @@ -13,11 +13,17 @@
@@ -104,7 +104,7 @@ index 5ee617ff..a76f10e0 100644
  ///////////////////////////////////////////////////////////////////////////////
  // Type Representations
 diff --git a/crates/c_api/include/wasmi.h b/crates/c_api/include/wasmi.h
-index 2caffa37..8f0f0edb 100644
+index 2caffa3..8f0f0ed 100644
 --- a/crates/c_api/include/wasmi.h
 +++ b/crates/c_api/include/wasmi.h
 @@ -10,18 +10,18 @@
@@ -130,8 +130,385 @@ index 2caffa37..8f0f0edb 100644
 +#define WASMI_VERSION_PATCH 4
  
  #endif // WASMI_H
+diff --git a/crates/c_api/include/wasmi/config.h b/crates/c_api/include/wasmi/config.h
+index 67baa75..491a1cc 100644
+--- a/crates/c_api/include/wasmi/config.h
++++ b/crates/c_api/include/wasmi/config.h
+@@ -35,6 +35,40 @@ WASMI_CONFIG_PROP(void, consume_fuel, bool)
+  */
+ WASMI_CONFIG_PROP(void, ignore_custom_sections, bool)
+ 
++/**
++ * \brief Sets the maximum recursion depth of the engine's stack during execution.
++ *
++ * An execution traps if it exceeds this limit.
++ */
++WASMI_CONFIG_PROP(void, set_max_recursion_depth, size_t)
++
++/**
++ * \brief Sets the minimum (or initial) height of the engine's value stack in bytes.
++ *
++ * Lower initial heights may improve memory consumption.
++ * Higher initial heights may improve cold start times.
++ *
++ * Note: Panics if value is greater than the current maximum height of the value stack.
++ */
++WASMI_CONFIG_PROP(void, set_min_stack_height, size_t)
++
++/**
++ * \brief Sets the maximum height of the engine's value stack in bytes.
++ *
++ * An execution traps if it exceeds this limit.
++ *
++ * Note: Panics if value is less than the current minimum height of the value stack.
++ */
++WASMI_CONFIG_PROP(void, set_max_stack_height, size_t)
++
++/**
++ * \brief Sets the maximum number of cached stacks for reuse.
++ *
++ * A higher value may improve execution performance.
++ * A lower value may improve memory consumption.
++ */
++WASMI_CONFIG_PROP(void, set_max_cached_stacks, size_t)
++
+ /**
+  * \brief Whether or not to Wasm mutable-globals proposal is enabled.
+  *
+@@ -92,6 +126,52 @@ WASMI_CONFIG_PROP(void, wasm_tail_call, bool)
+  */
+ WASMI_CONFIG_PROP(void, wasm_extended_const, bool)
+ 
++/**
++ * \brief Whether or not to Wasm multi-memory proposal is enabled.
++ *
++ * Default value: `true`
++ */
++WASMI_CONFIG_PROP(void, wasm_multi_memory, bool)
++
++/**
++ * \brief Whether or not to Wasm custom-page-sizes proposal is enabled.
++ *
++ * Default value: `false`
++ */
++WASMI_CONFIG_PROP(void, wasm_custom_page_sizes, bool)
++
++/**
++ * \brief Whether or not to Wasm memory64 proposal is enabled.
++ *
++ * Default value: `true`
++ */
++WASMI_CONFIG_PROP(void, wasm_memory64, bool)
++
++/**
++ * \brief Whether or not to Wasm wide-arithmetic proposal is enabled.
++ *
++ * Default value: `false`
++ */
++WASMI_CONFIG_PROP(void, wasm_wide_arithmetic, bool)
++
++/**
++ * \brief Whether or not to Wasm simd proposal is enabled.
++ *
++ * Only available when compiled with the `simd` feature.
++ *
++ * Default value: `true` (when feature enabled)
++ */
++WASMI_CONFIG_PROP(void, wasm_simd, bool)
++
++/**
++ * \brief Whether or not to Wasm relaxed-simd proposal is enabled.
++ *
++ * Only available when compiled with the `simd` feature.
++ *
++ * Default value: `true` (when feature enabled)
++ */
++WASMI_CONFIG_PROP(void, wasm_relaxed_simd, bool)
++
+ /**
+  * \brief Whether or not to floating Wasm point types and operations are
+  * enabled.
+@@ -125,6 +205,58 @@ WASMI_CONFIG_PROP(void, compilation_mode, enum wasmi_compilation_mode_enum)
+ 
+ #undef WASMI_CONFIG_PROP
+ 
++/**
++ * \brief Enforced limits for Wasm module parsing and compilation.
++ *
++ * Opaque type representing limits that can be enforced on Wasm modules.
++ */
++typedef struct wasmi_enforced_limits_t wasmi_enforced_limits_t;
++
++/**
++ * \brief Creates a new enforced limits object with strict preset values.
++ *
++ * This set of strict enforced rules can be used to safeguard against
++ * malicious actors trying to attack the Wasmi compilation procedures.
++ *
++ * The strict limits are:
++ * - max_globals: 1000
++ * - max_functions: 10,000
++ * - max_tables: 100
++ * - max_element_segments: 1000
++ * - max_memories: 1
++ * - max_data_segments: 1000
++ * - max_params: 32
++ * - max_results: 32
++ * - min_avg_bytes_per_function: 40 (enforced at 1000+ total bytes)
++ *
++ * The returned object must be freed using wasmi_enforced_limits_delete().
++ *
++ * \return A new enforced limits object with strict preset values
++ */
++WASM_API_EXTERN wasmi_enforced_limits_t* wasmi_enforced_limits_strict();
++
++/**
++ * \brief Deletes an enforced limits object.
++ *
++ * \param limits The enforced limits object to delete
++ */
++WASM_API_EXTERN void wasmi_enforced_limits_delete(wasmi_enforced_limits_t* limits);
++
++/**
++ * \brief Sets the enforced limits for the configuration.
++ *
++ * By default no limits are enforced. Use this function to apply a set of
++ * enforced limits (such as those created by wasmi_enforced_limits_strict())
++ * to the configuration.
++ *
++ * \param config The configuration to modify
++ * \param limits The enforced limits to apply
++ */
++WASM_API_EXTERN void wasmi_config_enforced_limits_set(
++    wasm_config_t* config,
++    const wasmi_enforced_limits_t* limits
++);
++
+ #ifdef __cplusplus
+ } // extern "C"
+ #endif
+diff --git a/crates/c_api/src/config.rs b/crates/c_api/src/config.rs
+index 6a1c1aa..cc69342 100644
+--- a/crates/c_api/src/config.rs
++++ b/crates/c_api/src/config.rs
+@@ -1,5 +1,5 @@
+ use alloc::boxed::Box;
+-use wasmi::{CompilationMode, Config};
++use wasmi::{CompilationMode, Config, EnforcedLimits};
+ 
+ /// The Wasm configuration.
+ ///
+@@ -111,6 +111,68 @@ pub extern "C" fn wasmi_config_wasm_extended_const_set(c: &mut wasm_config_t, en
+     c.inner.wasm_extended_const(enable);
+ }
+ 
++/// Enables or disables support for the Wasm [`multi-memory`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_multi_memory`]
++///
++/// [`multi-memory`]: <https://github.com/WebAssembly/multi-memory>
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_multi_memory_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_multi_memory(enable);
++}
++
++/// Enables or disables support for the Wasm [`custom-page-sizes`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_custom_page_sizes`]
++///
++/// [`custom-page-sizes`]: <https://github.com/WebAssembly/custom-page-sizes>
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_custom_page_sizes_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_custom_page_sizes(enable);
++}
++
++/// Enables or disables support for the Wasm [`memory64`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_memory64`]
++///
++/// [`memory64`]: <https://github.com/WebAssembly/memory64>
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_memory64_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_memory64(enable);
++}
++
++/// Enables or disables support for the Wasm [`wide-arithmetic`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_wide_arithmetic`]
++///
++/// [`wide-arithmetic`]: <https://github.com/WebAssembly/wide-arithmetic>
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_wide_arithmetic_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_wide_arithmetic(enable);
++}
++
++/// Enables or disables support for the Wasm [`simd`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_simd`]
++///
++/// [`simd`]: <https://github.com/WebAssembly/simd>
++#[cfg(feature = "simd")]
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_simd_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_simd(enable);
++}
++
++/// Enables or disables support for the Wasm [`relaxed-simd`] proposal.
++///
++/// Wraps [`wasmi::Config::wasm_relaxed_simd`]
++///
++/// [`relaxed-simd`]: <https://github.com/WebAssembly/relaxed-simd>
++#[cfg(feature = "simd")]
++#[no_mangle]
++pub extern "C" fn wasmi_config_wasm_relaxed_simd_set(c: &mut wasm_config_t, enable: bool) {
++    c.inner.wasm_relaxed_simd(enable);
++}
++
+ /// Enables or disables support for floating point numbers for the config.
+ ///
+ /// Wraps [`wasmi::Config::floats`]
+@@ -164,3 +226,111 @@ pub extern "C" fn wasmi_config_ignore_custom_sections_set(
+ ) {
+     config.inner.ignore_custom_sections(enable);
+ }
++
++/// Sets the maximum recursion depth of the engine's stack during execution.
++///
++/// An execution traps if it exceeds this limit.
++///
++/// Wraps [`wasmi::Config::set_max_recursion_depth`]
++#[no_mangle]
++pub extern "C" fn wasmi_config_set_max_recursion_depth(
++    config: &mut wasm_config_t,
++    value: usize,
++) {
++    config.inner.set_max_recursion_depth(value);
++}
++
++/// Sets the minimum (or initial) height of the engine's value stack in bytes.
++///
++/// # Note
++///
++/// - Lower initial heights may improve memory consumption.
++/// - Higher initial heights may improve cold start times.
++///
++/// # Panics
++///
++/// If `value` is greater than the current maximum height of the value stack.
++///
++/// Wraps [`wasmi::Config::set_min_stack_height`]
++#[no_mangle]
++pub extern "C" fn wasmi_config_set_min_stack_height(config: &mut wasm_config_t, value: usize) {
++    config.inner.set_min_stack_height(value);
++}
++
++/// Sets the maximum height of the engine's value stack in bytes.
++///
++/// An execution traps if it exceeds this limit.
++///
++/// # Panics
++///
++/// If `value` is less than the current minimum height of the value stack.
++///
++/// Wraps [`wasmi::Config::set_max_stack_height`]
++#[no_mangle]
++pub extern "C" fn wasmi_config_set_max_stack_height(config: &mut wasm_config_t, value: usize) {
++    config.inner.set_max_stack_height(value);
++}
++
++/// Sets the maximum number of cached stacks for reuse.
++///
++/// # Note
++///
++/// - A higher value may improve execution performance.
++/// - A lower value may improve memory consumption.
++///
++/// Wraps [`wasmi::Config::set_max_cached_stacks`]
++#[no_mangle]
++pub extern "C" fn wasmi_config_set_max_cached_stacks(config: &mut wasm_config_t, value: usize) {
++    config.inner.set_max_cached_stacks(value);
++}
++
++/// Enforced limits for Wasm module parsing and compilation.
++///
++/// Wraps [`wasmi::EnforcedLimits`]
++#[repr(C)]
++#[derive(Clone)]
++pub struct wasmi_enforced_limits_t {
++    pub(crate) inner: EnforcedLimits,
++}
++
++wasmi_c_api_macros::declare_own!(wasmi_enforced_limits_t);
++
++/// Creates a new [`wasmi_enforced_limits_t`] with strict limits.
++///
++/// This set of strict enforced rules can be used to safeguard against
++/// malicious actors trying to attack the Wasmi compilation procedures.
++///
++/// The strict limits are:
++/// - max_globals: 1000
++/// - max_functions: 10,000
++/// - max_tables: 100
++/// - max_element_segments: 1000
++/// - max_memories: 1
++/// - max_data_segments: 1000
++/// - max_params: 32
++/// - max_results: 32
++/// - min_avg_bytes_per_function: 40 (enforced at 1000+ total bytes)
++///
++/// The returned [`wasmi_enforced_limits_t`] must be freed using
++/// [`wasmi_enforced_limits_delete`] or consumed by [`wasmi_config_enforced_limits_set`].
++///
++/// Wraps [`wasmi::EnforcedLimits::strict`]
++#[no_mangle]
++pub extern "C" fn wasmi_enforced_limits_strict() -> Box<wasmi_enforced_limits_t> {
++    Box::new(wasmi_enforced_limits_t {
++        inner: EnforcedLimits::strict(),
++    })
++}
++
++/// Sets the enforced limits for the config.
++///
++/// By default no limits are enforced.
++///
++/// Wraps [`wasmi::Config::enforced_limits`]
++#[no_mangle]
++pub extern "C" fn wasmi_config_enforced_limits_set(
++    config: &mut wasm_config_t,
++    limits: &wasmi_enforced_limits_t,
++) {
++    config.inner.enforced_limits(limits.inner);
++}
+diff --git a/crates/c_api/src/error.rs b/crates/c_api/src/error.rs
+index f51aff8..dc85727 100644
+--- a/crates/c_api/src/error.rs
++++ b/crates/c_api/src/error.rs
+@@ -1,4 +1,5 @@
+-use alloc::{boxed::Box, string::String};
++use crate::wasm_name_t;
++use alloc::{boxed::Box, string::String, vec::Vec};
+ use core::ffi;
+ use wasmi::Error;
+ 
+@@ -50,3 +51,16 @@ pub(crate) fn handle_result<T>(
+         Err(error) => Some(Box::new(wasmi_error_t::from(error))),
+     }
+ }
++
++/// Returns the error message of the [`wasmi_error_t`].
++///
++/// Stores the returned error message in `out`.
++#[cfg_attr(not(feature = "prefix-symbols"), no_mangle)]
++#[cfg_attr(feature = "prefix-symbols", wasmi_c_api_macros::prefix_symbol)]
++pub extern "C" fn wasmi_error_message(error: &wasmi_error_t, out: &mut wasm_name_t) {
++    let mut buffer = Vec::new();
++    buffer.extend_from_slice(format!("{:?}", error.inner).as_bytes());
++    buffer.reserve_exact(1);
++    buffer.push(0);
++    out.set_buffer(buffer.into());
++}
 diff --git a/crates/c_api/src/store.rs b/crates/c_api/src/store.rs
-index 56d4898f..9abda8e7 100644
+index 56d4898..9abda8e 100644
 --- a/crates/c_api/src/store.rs
 +++ b/crates/c_api/src/store.rs
 @@ -1,7 +1,7 @@
