@@ -1,0 +1,5 @@
+# Allow anyone to review any change by default.
+*
+
+# Require the Programmability team to review changes to the WASMI code.
+recipes/wasmi @mvadari @oleks-rip @pwang200 @sappenin
