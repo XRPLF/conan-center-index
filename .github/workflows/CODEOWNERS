@@ -1,5 +1,5 @@
-# Allow anyone to review any change by default.
-*
+# Require the CI team to review changes to the CCI recipes.
+* @mathbunnyru @bthomee
 
 # Require the Programmability team to review changes to the WASMI code.
 recipes/wasmi @mvadari @oleks-rip @pwang200 @sappenin
