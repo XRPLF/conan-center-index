@@ -1,5 +1,5 @@
 diff --git a/crates/c_api/CMakeLists.txt b/crates/c_api/CMakeLists.txt
-index b15c787..54eaed2 100644
+index b15c787a..54eaed2d 100644
 --- a/crates/c_api/CMakeLists.txt
 +++ b/crates/c_api/CMakeLists.txt
 @@ -6,6 +6,8 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
@@ -67,7 +67,7 @@ index b15c787..54eaed2 100644
 -    COMMENT "clang-format: Apply formatting rules for Wasmi C-API header files"
 -)
 diff --git a/crates/c_api/include/wasm.h b/crates/c_api/include/wasm.h
-index 5ee617f..a76f10e 100644
+index 5ee617ff..a76f10e0 100644
 --- a/crates/c_api/include/wasm.h
 +++ b/crates/c_api/include/wasm.h
 @@ -13,11 +13,17 @@
@@ -104,7 +104,7 @@ index 5ee617f..a76f10e 100644
  ///////////////////////////////////////////////////////////////////////////////
  // Type Representations
 diff --git a/crates/c_api/include/wasmi.h b/crates/c_api/include/wasmi.h
-index 2caffa3..8f0f0ed 100644
+index 2caffa37..560ab307 100644
 --- a/crates/c_api/include/wasmi.h
 +++ b/crates/c_api/include/wasmi.h
 @@ -10,18 +10,18 @@
@@ -112,7 +112,7 @@ index 2caffa3..8f0f0ed 100644
   * \brief Wasmi version string.
   */
 -#define WASMI_VERSION "0.35.0"
-+#define WASMI_VERSION "1.0.4"
++#define WASMI_VERSION "1.0.6"
  /**
   * \brief Wasmi major version number.
   */
@@ -127,11 +127,11 @@ index 2caffa3..8f0f0ed 100644
   * \brief Wasmi patch version number.
   */
 -#define WASMI_VERSION_PATCH 0
-+#define WASMI_VERSION_PATCH 4
++#define WASMI_VERSION_PATCH 6
  
  #endif // WASMI_H
 diff --git a/crates/c_api/include/wasmi/config.h b/crates/c_api/include/wasmi/config.h
-index 67baa75..491a1cc 100644
+index 67baa751..491a1cc7 100644
 --- a/crates/c_api/include/wasmi/config.h
 +++ b/crates/c_api/include/wasmi/config.h
 @@ -35,6 +35,40 @@ WASMI_CONFIG_PROP(void, consume_fuel, bool)
@@ -288,7 +288,7 @@ index 67baa75..491a1cc 100644
  } // extern "C"
  #endif
 diff --git a/crates/c_api/src/config.rs b/crates/c_api/src/config.rs
-index 6a1c1aa..cc69342 100644
+index 6a1c1aa2..cc693429 100644
 --- a/crates/c_api/src/config.rs
 +++ b/crates/c_api/src/config.rs
 @@ -1,5 +1,5 @@
@@ -480,7 +480,7 @@ index 6a1c1aa..cc69342 100644
 +    config.inner.enforced_limits(limits.inner);
 +}
 diff --git a/crates/c_api/src/error.rs b/crates/c_api/src/error.rs
-index f51aff8..dc85727 100644
+index f51aff8a..dc85727b 100644
 --- a/crates/c_api/src/error.rs
 +++ b/crates/c_api/src/error.rs
 @@ -1,4 +1,5 @@
@@ -508,7 +508,7 @@ index f51aff8..dc85727 100644
 +    out.set_buffer(buffer.into());
 +}
 diff --git a/crates/c_api/src/store.rs b/crates/c_api/src/store.rs
-index 56d4898..9abda8e 100644
+index 56d4898f..9abda8e7 100644
 --- a/crates/c_api/src/store.rs
 +++ b/crates/c_api/src/store.rs
 @@ -1,7 +1,7 @@
