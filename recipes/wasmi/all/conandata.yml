@@ -2,10 +2,5 @@
 
 sources:
   "1.0.6":
-    url: https://github.com/wasmi-labs/wasmi/archive/refs/tags/v1.0.6.tar.gz
-    sha256: dae2da33bba478deab23947407fe1f28422fd2f6756502d0eb7f065ca3224e91
-patches:
-  "1.0.6":
-    - patch_file: "patches/0002-xrplf-1.0.6.patch"
-      patch_description: Integrate wasmi lib into smart-escrow.
-      patch_type: conan
+    url: https://github.com/XRPLF/wasmi/archive/refs/tags/v1.0.6.tar.gz
+    sha256: 05edd402f381bc3a4c6fb683b85dabaf4daf51f2f1e68b9010db5f9644450d64
