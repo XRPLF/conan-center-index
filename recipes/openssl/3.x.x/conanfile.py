@@ -51,8 +51,6 @@ class OpenSSLConan(ConanFile):
         "no_dh": [True, False],
         "no_dsa": [True, False],
         "no_dtls": [True, False],
-        "no_dtls1": [True, False],
-        "no_dtls1_2": [True, False],
         "no_dso": [True, False],
         "no_ec": [True, False],
         "no_ecdh": [True, False],
