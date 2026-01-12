@@ -1,6 +1,6 @@
 from conan import ConanFile, tools
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
-from conan.tools.files import apply_conandata_patches, export_conandata_patches, get
+from conan.tools.files import get
 import os
 
 required_conan_version = ">=2.0.0"
@@ -15,15 +15,11 @@ class WasmiConan(ConanFile):
     options = {"shared": [False]}
     default_options = {"shared": False}
 
-    def export_sources(self):
-        export_conandata_patches(self)
-
     def layout(self):
         cmake_layout(self, src_folder="src")
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        apply_conandata_patches(self)
 
     def generate(self):
         tc = CMakeToolchain(self)
