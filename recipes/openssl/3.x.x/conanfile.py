@@ -50,8 +50,8 @@ class OpenSSLConan(ConanFile):
         "no_dgram": [True, False],
         "no_dh": [True, False],
         "no_dsa": [True, False],
-        "no_dtls": [True, False],
         "no_dso": [True, False],
+        "no_dtls": [True, False],
         "no_ec": [True, False],
         "no_ecdh": [True, False],
         "no_ecdsa": [True, False],
@@ -412,7 +412,10 @@ class OpenSSLConan(ConanFile):
         for option_name in self.default_options.keys():
             if self.options.get_safe(option_name, False) and option_name not in ("shared", "fPIC", "openssldir", "tls_security_level", "capieng_dialog", "enable_capieng", "zlib", "no_fips", "no_md2"):
                 self.output.info(f"Activated option: {option_name}")
-                args.append(option_name.replace("_", "-", 1))
+                if option_name in ("no_tls1_1", "no_tls1_2", "no_tls1_3"):
+                    args.append(option_name.replace("_", "-", 1))
+                else:
+                    args.append(option_name.replace("_", "-"))
         return args
 
     def generate(self):
