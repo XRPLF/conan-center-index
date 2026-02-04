@@ -1,6 +1,7 @@
 from conan import ConanFile, tools
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.files import get
+from conan.tools.files import get, copy
+import os
 
 required_conan_version = ">=2.0.0"
 
@@ -43,6 +44,16 @@ class SecpConan(ConanFile):
     def package(self):
         cmake = CMake(self)
         cmake.install()
+
+        # Copy additional headers from src directory
+        src_headers = ["util.h", "int128.h", "int128_impl.h", "scalar.h", "scalar_impl.h", "checkmem.h", "int128_native.h", "int128_native_impl.h", "scalar_4x64.h", "scalar_4x64_impl.h", "modinv64.h", "modinv64_impl.h"]
+        for header in src_headers:
+            copy(
+                self,
+                header,
+                src=os.path.join(self.source_folder, "src"),
+                dst=os.path.join(self.package_folder, "include", "private")
+            )
 
     def package_info(self):
         self.cpp_info.libs = ["secp256k1"]
