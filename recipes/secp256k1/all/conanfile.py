@@ -45,9 +45,10 @@ class SecpConan(ConanFile):
         cmake = CMake(self)
         cmake.install()
 
-        # Copy additional headers from src directory
-        src_headers = ["util.h", "int128.h", "int128_impl.h", "scalar.h", "scalar_impl.h", "checkmem.h", "int128_native.h", "int128_native_impl.h", "scalar_4x64.h", "scalar_4x64_impl.h", "modinv64.h", "modinv64_impl.h"]
-        for header in src_headers:
+        # These headers are used by XRPLF/mpt-crypto which is why we need to package them.
+        src_headers = ["util.h", "int128.h", "int128_impl.h", "scalar.h", "scalar_impl.h"]
+        src_headers_dependencies = ["checkmem.h", "int128_native.h", "int128_native_impl.h", "scalar_4x64.h", "scalar_4x64_impl.h", "modinv64.h", "modinv64_impl.h"]
+        for header in src_headers + src_headers_dependencies:
             copy(
                 self,
                 header,
