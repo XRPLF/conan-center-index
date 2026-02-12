@@ -1,6 +1,7 @@
 from conan import ConanFile, tools
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.files import get
+from conan.tools.files import copy, get
+import os
 
 required_conan_version = ">=2.0.0"
 
@@ -52,8 +53,23 @@ class MptCryptoConan(ConanFile):
         cmake.build()
 
     def package(self):
-        cmake = CMake(self)
-        cmake.install()
+        # Copy headers
+        copy(
+            self,
+            "*.h",
+            src=os.path.join(self.source_folder, "include"),
+            dst=os.path.join(self.package_folder, "include"),
+            keep_path=True,
+        )
+        # Copy library files
+        for ext in ["*.a", "*.lib", "*.dylib", "*.so*", "*.dll"]:
+            copy(
+                self,
+                ext,
+                src=self.build_folder,
+                dst=os.path.join(self.package_folder, "lib"),
+                keep_path=False,
+            )
 
     def package_info(self):
         self.cpp_info.libs = ["mpt-crypto"]
