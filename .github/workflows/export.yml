@@ -47,6 +47,7 @@ jobs:
           conan export soci/all --version=4.0.3
           conan export wasm-xrplf/all --version=2.4.1-xrplf
           conan export wasmi/all --version=1.0.6
+          conan export wasmi/all --version=1.0.9
       - name: Add Conan remote
         run: |
           conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
