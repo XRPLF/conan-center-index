@@ -1,9 +1,9 @@
 # Do not update. Maintained by programmability team.
 
 sources:
-  "1.0.6":
-    url: https://github.com/XRPLF/wasmi/archive/refs/tags/v1.0.6.tar.gz
-    sha256: 05edd402f381bc3a4c6fb683b85dabaf4daf51f2f1e68b9010db5f9644450d64
   "1.0.9":
     url: https://github.com/XRPLF/wasmi/archive/refs/tags/v1.0.9.tar.gz
     sha256: 2be22c2db1ca64b54f24d6aa8bd6751682cbf930b8ab626190350718e479981d
+  "1.0.6":
+    url: https://github.com/XRPLF/wasmi/archive/refs/tags/v1.0.6.tar.gz
+    sha256: 05edd402f381bc3a4c6fb683b85dabaf4daf51f2f1e68b9010db5f9644450d64
