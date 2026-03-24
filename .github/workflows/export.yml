@@ -5,12 +5,14 @@ on:
     paths:
       - ".github/workflows/export.yml"
       - "recipes/**"
+      - "export_all.sh"
   push:
     branches:
       - master
     paths:
       - ".github/workflows/export.yml"
       - "recipes/**"
+      - "export_all.sh"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,36 +31,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install Conan
-        uses: conan-io/setup-conan@09566912d661de90608308897a4d513e850c04e8 # v1.2.0
+        uses: conan-io/setup-conan@2f4bd34e8e0af00e1a77a66e1d284e06d71d703f # v1.3.0
+
       - name: Export the recipes
-        working-directory: recipes
         run: |
-          conan export abseil/all --version=20250127.0
-          conan export ed25519/all --version=2015.03
-          conan export grpc/all --version=1.72.0
-          conan export m4/all --version=1.4.19
-          conan export mpt-crypto/all --version=0.2.0-rc1
-          conan export nudb/all --version=2.0.9
-          conan export openssl/3.x.x --version=3.5.4
-          conan export secp256k1/all --version=0.7.1
-          conan export snappy/all --version=1.1.10
-          conan export soci/all --version=4.0.3
-          conan export wasm-xrplf/all --version=2.4.1-xrplf
-          conan export wasmi/all --version=1.0.6
-          conan export wasmi/all --version=1.0.9
+          ./export_all.sh
+
       - name: Add Conan remote
         run: |
-          conan remote add --index 0 ${{ env.CONAN_REMOTE_NAME }} ${{ env.CONAN_REMOTE_URL }}
-          echo "Added new conan remote '${{ env.CONAN_REMOTE_NAME }}' at ${{ env.CONAN_REMOTE_URL }}."
+          conan remote add --index 0 ${CONAN_REMOTE_NAME} ${CONAN_REMOTE_URL}
+
       - name: Upload the recipes (dry run)
-        run: conan upload '*' --confirm --check --only-recipe --remote ${{ env.CONAN_REMOTE_NAME }} --dry-run
+        run: |
+          conan upload '*' --confirm --check --only-recipe --remote ${CONAN_REMOTE_NAME} --dry-run
+
       - name: Log into Conan remote
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
         run: |
-          conan remote login ${{ env.CONAN_REMOTE_NAME }} ${{ secrets.CONAN_REMOTE_USERNAME }} --password "${{ secrets.CONAN_REMOTE_PASSWORD }}"
+          conan remote login ${CONAN_REMOTE_NAME} ${{ secrets.CONAN_REMOTE_USERNAME }} --password "${{ secrets.CONAN_REMOTE_PASSWORD }}"
           conan remote list-users
       - name: Upload the recipes
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
-        run: conan upload '*' --confirm --check --only-recipe --remote ${{ env.CONAN_REMOTE_NAME }}
+        run: |
+          conan upload '*' --confirm --check --only-recipe --remote ${CONAN_REMOTE_NAME}
