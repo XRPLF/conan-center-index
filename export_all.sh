@@ -16,7 +16,6 @@ conan export openssl/3.x.x --version=3.5.5
 conan export openssl/3.x.x --version=3.6.1
 conan export secp256k1/all --version=0.7.1
 conan export snappy/all --version=1.1.10
-conan export soci/all --version=4.0.3
 conan export wasm-xrplf/all --version=2.4.1-xrplf
 conan export wasmi/all --version=1.0.6
 conan export wasmi/all --version=1.0.9
