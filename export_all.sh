@@ -2,19 +2,33 @@
 
 set -ex
 
+if ! command -v yq &> /dev/null; then
+    echo "yq could not be found. Please install yq to run this script."
+    exit 1
+fi
+
+function export_recipe() {
+    local directory="$1"
+    local version="$2"
+
+    # Check the version is available in conandata.yml
+    yq --exit-status ".sources | has(\"${version}\")" "${directory}/conandata.yml"
+    conan export "${directory}" --version="${version}"
+}
+
 DIRECTORY=$(dirname "$0")
 
 pushd "${DIRECTORY}"/recipes/
 
-conan export abseil/all --version=20250127.0
-conan export ed25519/all --version=2015.03
-conan export mpt-crypto/all --version=0.3.0-rc1
-conan export openssl/3.x.x --version=3.5.5
-conan export openssl/3.x.x --version=3.6.1
-conan export secp256k1/all --version=0.7.1
-conan export snappy/all --version=1.1.10
-conan export wasm-xrplf/all --version=2.4.1-xrplf
-conan export wasmi/all --version=1.0.6
-conan export wasmi/all --version=1.0.9
+export_recipe abseil/all 20250127.0
+export_recipe ed25519/all 2015.03
+export_recipe mpt-crypto/all 0.3.0-rc1
+export_recipe openssl/3.x.x 3.5.6
+export_recipe openssl/3.x.x 3.6.2
+export_recipe secp256k1/all 0.7.1
+export_recipe snappy/all 1.1.10
+export_recipe wasm-xrplf/all 2.4.1-xrplf
+export_recipe wasmi/all 1.0.6
+export_recipe wasmi/all 1.0.9
 
 popd
