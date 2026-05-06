@@ -2,6 +2,11 @@
 
 set -ex
 
+if ! command -v yq &> /dev/null; then
+    echo "yq could not be found. Please install yq to run this script."
+    exit 1
+fi
+
 function export_recipe() {
     local directory="$1"
     local version="$2"
