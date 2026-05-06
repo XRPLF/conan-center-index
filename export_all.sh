@@ -25,3 +25,5 @@ export_recipe snappy/all 1.1.10
 export_recipe wasm-xrplf/all 2.4.1-xrplf
 export_recipe wasmi/all 1.0.6
 export_recipe wasmi/all 1.0.9
+
+popd
