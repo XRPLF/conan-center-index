@@ -59,6 +59,10 @@ class M4Conan(ConanFile):
             ])
             if self.settings.build_type in ("Debug", "RelWithDebInfo"):
                 tc.extra_ldflags.append("-PDB")
+        elif self.version == "1.4.19" and self.settings.compiler == "gcc" and Version(self.settings.compiler) >= "15":
+            # FIXME: https://savannah.gnu.org/support/?func=detailitem&item_id=111150
+            # WORKAROUND: https://lists.buildroot.org/pipermail/buildroot/2025-May/777741.html
+            tc.extra_cflags.append("-std=gnu17")
 
         if self.settings.compiler == "gcc" and Version(self.settings.compiler.version) >= 15:
             # The gnulib copy included in m4 1.4.19 does not detect properly the default C
