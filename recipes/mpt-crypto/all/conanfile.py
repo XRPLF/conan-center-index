@@ -24,7 +24,7 @@ class MptCryptoConan(ConanFile):
     }
 
     requires = [
-        "openssl/3.5.5",
+        "openssl/[>=3.5 <4]",
         "secp256k1/0.7.1",
     ]
 
