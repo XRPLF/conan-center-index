@@ -1,0 +1,30 @@
+From e11446139f0838c3c30e6e84d0afb0c0782611c0 Mon Sep 17 00:00:00 2001
+From: Name <test@g.com>
+Date: Wed, 10 Jun 2026 14:50:15 +0000
+Subject: [PATCH] Fix build error for Windows
+
+---
+ src/core/call/call_filters.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/core/call/call_filters.h b/src/core/call/call_filters.h
+index a39536c868..a8eff32507 100644
+--- a/src/core/call/call_filters.h
++++ b/src/core/call/call_filters.h
+@@ -1631,6 +1631,13 @@ constexpr bool AnyMethodHasChannelAccess = (MethodHasChannelAccess<Ts> || ...);
+ // fall into this category: later code should use this.
+ template <typename Derived>
+ inline constexpr bool CallHasChannelAccess() {
++  [[maybe_unused]] constexpr auto a = &Derived::Call::OnClientInitialMetadata;
++  [[maybe_unused]] constexpr auto b = &Derived::Call::OnClientToServerMessage;
++  [[maybe_unused]] constexpr auto c = &Derived::Call::OnServerInitialMetadata;
++  [[maybe_unused]] constexpr auto d = &Derived::Call::OnServerToClientMessage;
++  [[maybe_unused]] constexpr auto e = &Derived::Call::OnServerTrailingMetadata;
++  [[maybe_unused]] constexpr auto f = &Derived::Call::OnFinalize;
++
+   return AnyMethodHasChannelAccess<
+       decltype(&Derived::Call::OnClientInitialMetadata),
+       decltype(&Derived::Call::OnClientToServerMessage),
+-- 
+2.53.0.windows.2
+
