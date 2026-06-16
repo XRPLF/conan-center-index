@@ -13,4 +13,4 @@ patches:
     - patch_file: "patches/v1.50.x/002-CMake-Add-gRPC_USE_SYSTEMD-option-34384.patch"
   "1.81.0":
     - patch_file: "patches/v1.81.x/0001-Fix-build-error-for-Windows.patch"
-    - patch_description: "Patch is taken from https://github.com/grpc/grpc/issues/41970"
+      patch_description: "Patch is taken from https://github.com/grpc/grpc/issues/41970"
