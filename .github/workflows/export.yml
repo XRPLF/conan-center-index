@@ -13,6 +13,7 @@ on:
       - ".github/workflows/export.yml"
       - "recipes/**"
       - "export_all.sh"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,7 +25,7 @@ defaults:
 
 env:
   CONAN_REMOTE_NAME: xrplf
-  CONAN_REMOTE_URL: https://conan.ripplex.io
+  CONAN_REMOTE_URL: https://conan.xrplf.org/repository/conan/
 
 jobs:
   export:
@@ -50,7 +51,7 @@ jobs:
       - name: Log into Conan remote
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
         run: |
-          conan remote login ${CONAN_REMOTE_NAME} ${{ secrets.CONAN_REMOTE_USERNAME }} --password "${{ secrets.CONAN_REMOTE_PASSWORD }}"
+          conan remote login ${CONAN_REMOTE_NAME} ${{ secrets.NEXUS_REMOTE_USERNAME }} --password "${{ secrets.NEXUS_REMOTE_PASSWORD }}"
           conan remote list-users
       - name: Upload the recipes
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name == 'push' }}
