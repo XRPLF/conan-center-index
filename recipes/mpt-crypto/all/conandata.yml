@@ -1,4 +1,7 @@
 sources:
+  "0.3.0-rc6":
+    url: https://github.com/XRPLF/mpt-crypto/archive/refs/tags/0.3.0-rc6.zip
+    sha256: e763080d4bf99ec2a4d1a496a3507328f53c52adbfd1fd705b3e66f663ae1be0
   "0.3.0-rc5":
     url: https://github.com/XRPLF/mpt-crypto/archive/refs/tags/0.3.0-rc5.zip
     sha256: 0485eb8dcbc25e6670e1947cd70c81f23a3bc22b4465c588010b04ca1c2776a5
