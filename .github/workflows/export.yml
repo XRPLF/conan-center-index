@@ -55,5 +55,8 @@ jobs:
           conan remote list-users
       - name: Upload the recipes
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name != 'pull_request' }}
+        env:
+          CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.NEXUS_REMOTE_USERNAME }}
+          CONAN_PASSWORD_XRPLF: ${{ secrets.NEXUS_REMOTE_PASSWORD }}
         run: |
           conan upload '*' --confirm --check --only-recipe --remote ${CONAN_REMOTE_NAME}
