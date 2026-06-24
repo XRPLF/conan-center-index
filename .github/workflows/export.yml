@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/export.yml"
+      - ".github/workflows/export-one-remote.yml"
       - "recipes/**"
       - "export_all.sh"
   push:
@@ -11,6 +12,7 @@ on:
       - master
     paths:
       - ".github/workflows/export.yml"
+      - ".github/workflows/export-one-remote.yml"
       - "recipes/**"
       - "export_all.sh"
   workflow_dispatch:
@@ -23,40 +25,19 @@ defaults:
   run:
     shell: bash
 
-env:
-  CONAN_REMOTE_NAME: xrplf
-  CONAN_REMOTE_URL: https://conan.xrplf.org/repository/conan/
-
 jobs:
-  export:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Install Conan
-        uses: conan-io/setup-conan@2f4bd34e8e0af00e1a77a66e1d284e06d71d703f # v1.3.0
+  export-new:
+    uses: ./.github/workflows/export-one-remote.yml
+    with:
+      CONAN_REMOTE_URL: https://conan.xrplf.org/repository/conan/
+    secrets:
+      CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.NEXUS_REMOTE_USERNAME }}
+      CONAN_PASSWORD_XRPLF: ${{ secrets.NEXUS_REMOTE_PASSWORD }}
 
-      - name: Export the recipes
-        run: |
-          ./export_all.sh
-
-      - name: Add Conan remote
-        run: |
-          conan remote add --index 0 ${CONAN_REMOTE_NAME} ${CONAN_REMOTE_URL}
-
-      - name: Upload the recipes (dry run)
-        run: |
-          conan upload '*' --confirm --check --only-recipe --remote ${CONAN_REMOTE_NAME} --dry-run
-
-      - name: Log into Conan remote
-        if: ${{ github.repository_owner == 'XRPLF' && github.event_name != 'pull_request' }}
-        run: |
-          conan remote login ${CONAN_REMOTE_NAME} ${{ secrets.NEXUS_REMOTE_USERNAME }} --password "${{ secrets.NEXUS_REMOTE_PASSWORD }}"
-          conan remote list-users
-      - name: Upload the recipes
-        if: ${{ github.repository_owner == 'XRPLF' && github.event_name != 'pull_request' }}
-        env:
-          CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.NEXUS_REMOTE_USERNAME }}
-          CONAN_PASSWORD_XRPLF: ${{ secrets.NEXUS_REMOTE_PASSWORD }}
-        run: |
-          conan upload '*' --confirm --check --only-recipe --remote ${CONAN_REMOTE_NAME}
+  export-old:
+    uses: ./.github/workflows/export-one-remote.yml
+    with:
+      CONAN_REMOTE_URL: https://conan.ripplex.io
+    secrets:
+      CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.CONAN_REMOTE_USERNAME }}
+      CONAN_PASSWORD_XRPLF: ${{ secrets.CONAN_REMOTE_PASSWORD }}
