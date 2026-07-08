@@ -1,5 +1,6 @@
 from conan import ConanFile, tools
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
+from conan.tools.env import Environment
 from conan.tools.files import get
 import os
 
@@ -12,8 +13,8 @@ class WasmiConan(ConanFile):
     description = "WebAssembly (Wasm) interpreter"
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"shared": [False]}
-    default_options = {"shared": False}
+    options = {"shared": [False], "coverage": [True, False]}
+    default_options = {"shared": False, "coverage": False}
 
     def layout(self):
         cmake_layout(self, src_folder="src")
@@ -24,6 +25,11 @@ class WasmiConan(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self)
         tc.generate()
+
+        if self.options.coverage:
+            env = Environment()
+            env.append("RUSTFLAGS", "-Cinstrument-coverage", separator=" ")
+            env.vars(self, scope="build").save_script("wasmi_coverage")
 
     def build(self):
         cmake = CMake(self)
@@ -36,3 +42,18 @@ class WasmiConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["wasmi"]
+
+        if self.options.coverage:
+            compiler = str(self.settings.compiler)
+            if compiler in ("clang", "apple-clang"):
+                coverage_flags = ["-fprofile-instr-generate", "-fcoverage-mapping"]
+                self.cpp_info.cflags.extend(coverage_flags)
+                self.cpp_info.cxxflags.extend(coverage_flags)
+                self.cpp_info.exelinkflags.extend(coverage_flags)
+                self.cpp_info.sharedlinkflags.extend(coverage_flags)
+            else:
+                self.output.warning(
+                    "wasmi coverage=True has no effect with compiler '%s': libwasmi "
+                    "is instrumented with LLVM source-based coverage, which requires "
+                    "a Clang consumer to link the LLVM profiling runtime." % compiler
+                )
