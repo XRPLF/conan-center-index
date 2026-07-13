@@ -1,4 +1,7 @@
 sources:
+  "1.82.0":
+    url: "https://github.com/grpc/grpc/archive/refs/tags/v1.82.0.tar.gz"
+    sha256: "d6851f59b9c4edb3218d2659a3abf1138e5bb4d2871c9e89c9330ed71756ed0b"
   "1.81.1":
     url: "https://github.com/grpc/grpc/archive/refs/tags/v1.81.1.tar.gz"
     sha256: "48ae0d05f87206112d9e9144a923191ee1e482141a70686ec58dc86d0b40fddc"
