@@ -23,7 +23,7 @@ pushd "${DIRECTORY}"/recipes/
 export_recipe abseil/all 20250127.0
 export_recipe ed25519/all 2015.03
 export_recipe grpc/all 1.81.1
-export_recipe mpt-crypto/all 1.0.1
+export_recipe mpt-crypto/all 1.0.2
 export_recipe openssl/3.x.x 3.5.7
 export_recipe openssl/3.x.x 3.6.3
 export_recipe secp256k1/all 0.7.1

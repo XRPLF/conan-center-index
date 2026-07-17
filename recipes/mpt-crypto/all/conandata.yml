@@ -1,4 +1,7 @@
 sources:
+  "1.0.2":
+    url: https://github.com/XRPLF/mpt-crypto/archive/refs/tags/1.0.2.zip
+    sha256: 171f27d8acf88a030bb2480f0aedbfdc523445e429729b824fdd7384cdd730b1
   "1.0.1":
     url: https://github.com/XRPLF/mpt-crypto/archive/refs/tags/1.0.1.zip
     sha256: 75252070fec8d4e564d103d4675e64d20de2e0eb34dae0e4d3f497e98f373d59
