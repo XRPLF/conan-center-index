@@ -26,6 +26,8 @@ export_recipe grpc/all 1.81.1
 export_recipe mpt-crypto/all 1.0.2
 export_recipe openssl/3.x.x 3.5.7
 export_recipe openssl/3.x.x 3.6.3
+export_recipe opentelemetry-cpp/all 1.27.0
+export_recipe opentelemetry-cpp/all 1.28.0
 export_recipe secp256k1/all 0.7.1
 export_recipe snappy/all 1.1.10
 export_recipe wasm-xrplf/all 2.4.1-xrplf
