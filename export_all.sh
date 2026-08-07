@@ -21,6 +21,7 @@ DIRECTORY=$(dirname "$0")
 pushd "${DIRECTORY}"/recipes/
 
 export_recipe abseil/all 20250127.0
+export_recipe corrosion/all 0.6.1
 export_recipe ed25519/all 2015.03
 export_recipe grpc/all 1.81.1
 export_recipe mpt-crypto/all 1.0.2
