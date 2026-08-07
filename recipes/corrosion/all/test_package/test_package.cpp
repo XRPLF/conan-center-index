@@ -1,9 +1,10 @@
 #include <cstdint>
-#include <iostream>
 
 extern "C" std::uint32_t rust_test_lib_answer();
 
 int main() {
-    std::cout << "rust says: " << rust_test_lib_answer() << std::endl;
+  if (rust_test_lib_answer() == 42) {
     return 0;
+  }
+  return -1;
 }
