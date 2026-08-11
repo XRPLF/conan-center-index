@@ -1,8 +1,9 @@
+import os
+
 from conan import ConanFile
 from conan.tools.build import check_min_cppstd
 from conan.tools.files import copy, get
 from conan.tools.layout import basic_layout
-import os
 
 required_conan_version = ">=2.0.0"
 
@@ -16,9 +17,13 @@ class XrplRpcSpecConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     no_copy_source = True
 
-    def requirements(self):
-        # The headers include <boost/json/...>, so consumers need those headers too.
-        self.requires("boost/[>=1.83 <2]", transitive_headers=True)
+    requires = [
+        "boost/1.91.0",
+    ]
+
+    default_options = {
+        "boost/*:without_cobalt": True,
+    }
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
@@ -27,12 +32,9 @@ class XrplRpcSpecConan(ConanFile):
         basic_layout(self, src_folder="src")
 
     def package_id(self):
-        # Header-only: the package is identical for every configuration.
         self.info.clear()
 
     def validate(self):
-        # The DSL is consteval-heavy and requires C++23. Only enforced when the
-        # consumer pins compiler.cppstd; profiles that leave it unset are not failed.
         if self.settings.compiler.cppstd:
             check_min_cppstd(self, 23)
 
