@@ -2,9 +2,6 @@
 #include <rpcspec/JsonBool.hpp>
 #include <rpcspec/SpecDumpWriter.hpp>
 
-#include <boost/json/parse.hpp>
-#include <boost/json/value_to.hpp>
-
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
