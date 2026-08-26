@@ -10,6 +10,9 @@ class TestPackageConan(ConanFile):
     generators = "CMakeDeps", "CMakeToolchain", "VirtualRunEnv"
     test_type = "explicit"
 
+    # The package has no default backend, so the test package has to pick one.
+    default_options = {"xrpl-rpc-spec/*:server": "clio"}
+
     def layout(self):
         cmake_layout(self)
 
