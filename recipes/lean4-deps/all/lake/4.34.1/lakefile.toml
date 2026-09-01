@@ -1,0 +1,14 @@
+# Workspace for building the Lean dependency closure. Only mathlib is required
+# directly; lake takes the rest of the closure from lake-manifest.json.
+#
+# The workspace name deliberately avoids a hyphen: Lean's `Name` type rejects
+# one, so "lean4-deps" fails to parse ("expected a `Name`") unless written in
+# guillemets as «lean4-deps». The name is internal to the build -- nothing
+# outside it observes the value -- so sidestepping the escaping is simpler.
+# lake-manifest.json's root `name` must match it.
+name = "leanDeps"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.1"
