@@ -24,7 +24,7 @@ export_recipe abseil/all 20250127.0
 export_recipe corrosion/all 0.6.1
 export_recipe ed25519/all 2015.03
 export_recipe grpc/all 1.81.1
-export_recipe mpt-crypto/all 1.0.4
+export_recipe mpt-crypto/all 1.0.5
 export_recipe openssl/3.x.x 3.5.7
 export_recipe openssl/3.x.x 3.6.3
 export_recipe opentelemetry-cpp/all 1.27.0
