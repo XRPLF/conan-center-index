@@ -58,8 +58,6 @@ class XrplRpcSpecConan(ConanFile):
             src=os.path.join(self.source_folder, "include"),
             dst=os.path.join(self.package_folder, "include"),
         )
-        # rpcspec_generate_instantiations() and the TU template it configures. Still a
-        # header library: the module only generates sources into the consumer's build tree.
         copy(
             self,
             "*",
