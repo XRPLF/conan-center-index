@@ -60,6 +60,12 @@ class XrplRpcSpecConan(ConanFile):
         )
         copy(
             self,
+            "*",
+            src=os.path.join(self.source_folder, "cmake"),
+            dst=os.path.join(self.package_folder, "lib", "cmake", "rpcspec"),
+        )
+        copy(
+            self,
             "LICENSE.md",
             src=self.source_folder,
             dst=os.path.join(self.package_folder, "licenses"),
@@ -73,3 +79,12 @@ class XrplRpcSpecConan(ConanFile):
         self.cpp_info.set_property("cmake_target_name", "rpcspec::rpcspec")
         self.cpp_info.requires = ["boost::json"]
         self.cpp_info.defines = [f"RPCSPEC_IS_{str(self.options.server).upper()}=1"]
+
+        # CMakeDeps includes build modules from find_package(xrpl-rpc-spec), so consumers
+        # get rpcspec_generate_instantiations() without vendoring a copy of it.
+        cmake_dir = os.path.join("lib", "cmake", "rpcspec")
+        self.cpp_info.builddirs = [cmake_dir]
+        self.cpp_info.set_property(
+            "cmake_build_modules",
+            [os.path.join(cmake_dir, "RpcSpecInstantiations.cmake")],
+        )
