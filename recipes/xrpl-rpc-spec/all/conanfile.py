@@ -62,7 +62,7 @@ class XrplRpcSpecConan(ConanFile):
             self,
             "*",
             src=os.path.join(self.source_folder, "cmake"),
-            dst=os.path.join(self.package_folder, "lib", "cmake", "rpcspec"),
+            dst=os.path.join(self.package_folder, "cmake"),
         )
         copy(
             self,
@@ -82,7 +82,9 @@ class XrplRpcSpecConan(ConanFile):
 
         # CMakeDeps includes build modules from find_package(xrpl-rpc-spec), so consumers
         # get rpcspec_generate_instantiations() without vendoring a copy of it.
-        cmake_dir = os.path.join("lib", "cmake", "rpcspec")
+        # cmake/ rather than lib/cmake/rpcspec: upstream 0.1.11 keeps the module at the
+        # package root so one relative path resolves both for a package and for an editable.
+        cmake_dir = "cmake"
         self.cpp_info.builddirs = [cmake_dir]
         self.cpp_info.set_property(
             "cmake_build_modules",
