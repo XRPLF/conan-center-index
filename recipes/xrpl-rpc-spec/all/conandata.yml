@@ -1,4 +1,4 @@
 sources:
-  "0.1.11":
-    url: https://github.com/XRPLF/rpc-spec/archive/refs/tags/0.1.11.zip
-    sha256: "9d8bbf4004b4f46f18189a7ba6583f2d5fc456a25017eadffb1a0fd50d883e06"
+  "0.1.13":
+    url: https://github.com/XRPLF/rpc-spec/archive/refs/tags/0.1.13.zip
+    sha256: "72a3ee6347909cfbdfa35718099b03603d163621138c3f9317900442208c10ba"
