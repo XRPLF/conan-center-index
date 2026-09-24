@@ -12,7 +12,12 @@ if(NOT COMMAND rpcspec_generate_instantiations)
         "xrpl-rpc-spec: find_package() did not provide rpcspec_generate_instantiations()"
     )
 endif()
-rpcspec_generate_instantiations(OUT_VAR rpcspec_instantiations HANDLERS account_info)
+rpcspec_generate_instantiations(
+    OUT_VAR rpcspec_instantiations
+    VALUE_TYPE "boost::json::value"
+    VIEW_HEADER "rpcspec/backends/BoostJson.hpp"
+    HANDLERS account_info
+)
 if(NOT rpcspec_instantiations)
     message(FATAL_ERROR "xrpl-rpc-spec: rpcspec_generate_instantiations() produced no TUs")
 endif()
