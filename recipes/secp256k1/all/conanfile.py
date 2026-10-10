@@ -47,9 +47,13 @@ class SecpConan(ConanFile):
 
         # These headers are used by XRPLF/mpt-crypto which is why we need to package them.
         src_headers = ["util.h", "int128.h", "int128_impl.h", "scalar.h", "scalar_impl.h",
-                       "field.h", "field_impl.h", "group.h", "group_impl.h"]
+                       "field.h", "field_impl.h", "group.h", "group_impl.h",
+                       "ecmult.h", "ecmult_impl.h", "scratch.h", "scratch_impl.h"]
+        # ecmult_impl.h reads the library's own secp256k1_pre_g tables, so consumers must link the
+        # static library and must not compile with an ECMULT_WINDOW_SIZE larger than the library's.
         src_headers_dependencies = ["checkmem.h", "int128_native.h", "int128_native_impl.h", "scalar_4x64.h", "scalar_4x64_impl.h", "modinv64.h", "modinv64_impl.h", "int128_struct.h", "int128_struct_impl.h",
-                                    "field_5x52.h", "field_5x52_impl.h", "field_5x52_int128_impl.h", "field_10x26.h", "field_10x26_impl.h"]
+                                    "field_5x52.h", "field_5x52_impl.h", "field_5x52_int128_impl.h", "field_10x26.h", "field_10x26_impl.h",
+                                    "precomputed_ecmult.h", "util_local_visibility.h"]
         for header in src_headers + src_headers_dependencies:
             copy(
                 self,
