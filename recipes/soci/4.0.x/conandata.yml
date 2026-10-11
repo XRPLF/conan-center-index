@@ -1,0 +1,13 @@
+patches:
+  4.0.3:
+  - patch_description: Generate relocatable libraries on MacOS
+    patch_file: patches/0001-Remove-hardcoded-INSTALL_NAME_DIR-for-relocatable-li.patch
+    patch_type: portability
+  - patch_description: Do not compile the install libdir into DEFAULT_BACKENDS_PATH, so
+      the library is the same for every install prefix
+    patch_file: patches/0002-Do-not-compile-the-install-libdir-into-DEFAULT_BACKENDS_PATH.patch
+    patch_type: conan
+sources:
+  4.0.3:
+    sha256: 4b1ff9c8545c5d802fbe06ee6cd2886630e5c03bf740e269bb625b45cf934928
+    url: https://github.com/SOCI/soci/archive/v4.0.3.tar.gz

@@ -1,0 +1,15 @@
+Subject: [PATCH] Do not compile the install libdir into DEFAULT_BACKENDS_PATH
+
+The absolute install path makes the library differ for every install prefix,
+so a package built from source never matches. The backend loader only adds
+the path under #ifdef, and SOCI_BACKENDS_PATH still sets search paths.
+---
+--- a/src/core/soci_backends_config.h.in
++++ b/src/core/soci_backends_config.h.in
+@@ -7,6 +7,5 @@
+ #ifndef SOCI_BACKENDS_CONFIG_H
+ #define SOCI_BACKENDS_CONFIG_H
+ 
+-#define DEFAULT_BACKENDS_PATH "@CMAKE_INSTALL_FULL_LIBDIR@"
+ 
+ #endif // SOCI_BACKENDS_CONFIG_H
