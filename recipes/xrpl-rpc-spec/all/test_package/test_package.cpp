@@ -6,6 +6,10 @@
 #include <iostream>
 #include <sstream>
 
+#if !defined(RPCSPEC_IS_CLIO)
+#error "the package's `server` option did not reach the consumer as a define"
+#endif
+
 int main() {
     // Verifies rpcspec headers and symbols are present
     rpc::spec::JsonBool flag;

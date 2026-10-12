@@ -1,6 +1,7 @@
 import os
 
 from conan import ConanFile
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.files import copy, get
 from conan.tools.layout import basic_layout
@@ -21,7 +22,14 @@ class XrplRpcSpecConan(ConanFile):
         "boost/1.91.0",
     ]
 
+    options = {
+        # Selects the server backend macro handed to consumers (see package_info).
+        "server": [None, "clio", "xrpld"],
+    }
+
     default_options = {
+        # Defaults to None so that consumers are forced to override
+        "server": None,
         "boost/*:without_cobalt": True,
     }
 
@@ -37,6 +45,11 @@ class XrplRpcSpecConan(ConanFile):
     def validate(self):
         if self.settings.compiler.cppstd:
             check_min_cppstd(self, 23)
+        if self.options.server == None:
+            raise ConanInvalidConfiguration(
+                "xrpl-rpc-spec: the 'server' option must be set to 'clio' or 'xrpld'; "
+                'add \'"xrpl-rpc-spec/*:server": "clio"\' to your conanfile\'s default_options'
+            )
 
     def package(self):
         copy(
@@ -44,6 +57,12 @@ class XrplRpcSpecConan(ConanFile):
             "*.hpp",
             src=os.path.join(self.source_folder, "include"),
             dst=os.path.join(self.package_folder, "include"),
+        )
+        copy(
+            self,
+            "*",
+            src=os.path.join(self.source_folder, "cmake"),
+            dst=os.path.join(self.package_folder, "cmake"),
         )
         copy(
             self,
@@ -59,3 +78,15 @@ class XrplRpcSpecConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "xrpl-rpc-spec")
         self.cpp_info.set_property("cmake_target_name", "rpcspec::rpcspec")
         self.cpp_info.requires = ["boost::json"]
+        self.cpp_info.defines = [f"RPCSPEC_IS_{str(self.options.server).upper()}=1"]
+
+        # CMakeDeps includes build modules from find_package(xrpl-rpc-spec), so consumers
+        # get rpcspec_generate_instantiations() without vendoring a copy of it.
+        # cmake/ rather than lib/cmake/rpcspec: since 0.1.11 upstream keeps the module at
+        # the package root so one relative path resolves both for a package and an editable.
+        cmake_dir = "cmake"
+        self.cpp_info.builddirs = [cmake_dir]
+        self.cpp_info.set_property(
+            "cmake_build_modules",
+            [os.path.join(cmake_dir, "RpcSpecInstantiations.cmake")],
+        )

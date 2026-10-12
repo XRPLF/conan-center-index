@@ -10,11 +10,19 @@ class TestPackageConan(ConanFile):
     generators = "CMakeDeps", "CMakeToolchain", "VirtualRunEnv"
     test_type = "explicit"
 
+    default_options = {
+        "xrpl-rpc-spec/*:server": "clio",
+        "xrpl/*:rocksdb": True,
+        "xrpl/*:tests": False,
+    }
+
     def layout(self):
         cmake_layout(self)
 
     def requirements(self):
         self.requires(self.tested_reference_str)
+        self.requires("xrpl/3.3.0")
+        self.requires("boost/1.91.0", override=True)
 
     def build(self):
         cmake = CMake(self)
