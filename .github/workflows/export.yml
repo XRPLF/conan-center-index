@@ -26,18 +26,10 @@ defaults:
     shell: bash
 
 jobs:
-  export-new:
+  export:
     uses: ./.github/workflows/export-one-remote.yml
     with:
       CONAN_REMOTE_URL: https://conan.xrplf.org/repository/conan/
     secrets:
       CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.NEXUS_REMOTE_USERNAME }}
       CONAN_PASSWORD_XRPLF: ${{ secrets.NEXUS_REMOTE_PASSWORD }}
-
-  export-old:
-    uses: ./.github/workflows/export-one-remote.yml
-    with:
-      CONAN_REMOTE_URL: https://conan.ripplex.io
-    secrets:
-      CONAN_LOGIN_USERNAME_XRPLF: ${{ secrets.CONAN_REMOTE_USERNAME }}
-      CONAN_PASSWORD_XRPLF: ${{ secrets.CONAN_REMOTE_PASSWORD }}
