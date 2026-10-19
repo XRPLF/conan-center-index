@@ -1,0 +1,144 @@
+name: Test recipes
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  list-recipes:
+    runs-on: ubuntu-latest
+    outputs:
+      recipes: ${{ steps.inputs.outputs.recipes }}
+      exports: ${{ steps.inputs.outputs.exports }}
+      options: ${{ steps.inputs.outputs.options }}
+      rippled_sha: ${{ steps.inputs.outputs.rippled_sha }}
+      linux_image: ${{ steps.inputs.outputs.linux_image }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Checkout rippled
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: XRPLF/rippled
+          ref: develop
+          path: .rippled
+          sparse-checkout: |
+            /conanfile.py
+            /.github/scripts/strategy-matrix/linux.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # Also provides PyYAML, a Conan dependency.
+      - name: Install Conan
+        uses: conan-io/setup-conan@2f4bd34e8e0af00e1a77a66e1d284e06d71d703f # v1.3.0
+
+      - name: Generate the test inputs
+        id: inputs
+        run: python .github/scripts/test_matrix.py .rippled | tee -a "${GITHUB_OUTPUT}"
+
+  test:
+    name: ${{ matrix.recipe.reference }} (${{ matrix.platform.name }}, ${{ matrix.build_type }})
+    needs: list-recipes
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: ${{ fromJSON(needs.list-recipes.outputs.recipes) }}
+        # The runners and image are the ones rippled builds with, see
+        # https://github.com/XRPLF/rippled/tree/develop/.github/scripts/strategy-matrix
+        platform:
+          - name: linux-gcc
+            runs_on: [self-hosted, Linux, X64, heavy]
+            image: ${{ needs.list-recipes.outputs.linux_image }}
+            compiler: gcc
+          - name: linux-clang
+            runs_on: [self-hosted, Linux, X64, heavy]
+            image: ${{ needs.list-recipes.outputs.linux_image }}
+            compiler: clang
+          - name: macos
+            runs_on: [self-hosted, macOS, ARM64, macos-26-apple-clang-21]
+          - name: windows
+            runs_on: [self-hosted, Windows, dev-box-windows-2026]
+        build_type: [Debug, Release]
+    runs-on: ${{ matrix.platform.runs_on }}
+    container: ${{ matrix.platform.image || null }}
+    timeout-minutes: 180
+
+    steps:
+      - name: Cleanup workspace (macOS and Windows)
+        if: ${{ runner.os == 'macOS' || runner.os == 'Windows' }}
+        uses: XRPLF/actions/cleanup-workspace@c7d9ce5ebb03c752a354889ecd870cadfc2b1cd4
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Checkout rippled Conan configuration
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: XRPLF/rippled
+          ref: ${{ needs.list-recipes.outputs.rippled_sha }}
+          path: .rippled
+          sparse-checkout: conan
+          persist-credentials: false
+
+      - name: Prepare runner
+        uses: XRPLF/actions/prepare-runner@8e98d61f011fd2a67f3fde5f0f075662c099a527
+        with:
+          enable_ccache: false
+
+      - name: Get number of processors
+        uses: XRPLF/actions/get-nproc@cf0433aa74563aead044a1e395610c96d65a37cf
+        id: nproc
+        with:
+          subtract: 2
+
+      - name: Set compiler environment (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        uses: XRPLF/rippled/.github/actions/set-compiler-env@develop
+        with:
+          compiler: ${{ matrix.platform.compiler }}
+
+      - name: Setup Conan
+        run: |
+          ./.rippled/conan/init.sh
+          conan remote list
+
+      - name: Create the recipe-test profile
+        env:
+          OPTIONS: ${{ needs.list-recipes.outputs.options }}
+        run: |
+          {
+              echo "include(ci)"
+              echo "[options]"
+              for option in ${OPTIONS}; do
+                  echo "${option}"
+              done
+          } >"$(conan config home)/profiles/recipe-test"
+          conan profile show --profile:all recipe-test
+
+      # So that dependencies (e.g. grpc's abseil) resolve to the local recipes.
+      - name: Export the recipes
+        env:
+          EXPORTS: ${{ needs.list-recipes.outputs.exports }}
+        run: |
+          for export in ${EXPORTS}; do
+              conan export "${export%:*}" --version="${export#*:}"
+          done
+
+      - name: Build the recipe and run its test_package
+        env:
+          BUILD_NPROC: ${{ steps.nproc.outputs.nproc }}
+          BUILD_TYPE: ${{ matrix.build_type }}
+          DIRECTORY: ${{ matrix.recipe.directory }}
+          VERSION: ${{ matrix.recipe.version }}
+        run: |
+          conan create "${DIRECTORY}" \
+              --version="${VERSION}" \
+              --profile:all recipe-test \
+              --build=missing \
+              --settings:all build_type="${BUILD_TYPE}" \
+              --conf:all tools.build:jobs="${BUILD_NPROC}"

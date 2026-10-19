@@ -5,7 +5,10 @@ on:
     paths:
       - ".github/workflows/export.yml"
       - ".github/workflows/export-one-remote.yml"
+      - ".github/workflows/test-recipes.yml"
+      - ".github/scripts/**"
       - "recipes/**"
+      - "recipes.yml"
       - "export_all.sh"
   push:
     branches:
@@ -13,20 +16,27 @@ on:
     paths:
       - ".github/workflows/export.yml"
       - ".github/workflows/export-one-remote.yml"
+      - ".github/workflows/test-recipes.yml"
+      - ".github/scripts/**"
       - "recipes/**"
+      - "recipes.yml"
       - "export_all.sh"
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
     shell: bash
 
 jobs:
+  test:
+    uses: ./.github/workflows/test-recipes.yml
+
   export:
+    needs: test
     uses: ./.github/workflows/export-one-remote.yml
     with:
       CONAN_REMOTE_URL: https://conan.xrplf.org/repository/conan/
