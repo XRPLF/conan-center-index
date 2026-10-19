@@ -14,19 +14,19 @@ jobs:
       tests: ${{ steps.inputs.outputs.tests }}
       exports: ${{ steps.inputs.outputs.exports }}
       options: ${{ steps.inputs.outputs.options }}
-      rippled_sha: ${{ steps.inputs.outputs.rippled_sha }}
+      xrpld_sha: ${{ steps.inputs.outputs.xrpld_sha }}
       linux_image: ${{ steps.inputs.outputs.linux_image }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Checkout rippled
+      - name: Checkout xrpld
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: XRPLF/rippled
           ref: develop
-          path: .rippled
+          path: .xrpld
           sparse-checkout: |
             /conanfile.py
             /.github/scripts/strategy-matrix/linux.json
@@ -46,7 +46,7 @@ jobs:
         env:
           # Empty on manual runs, so all the recipes are tested.
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: python .github/scripts/test_matrix.py .rippled --base "${BASE_SHA}" | tee -a "${GITHUB_OUTPUT}"
+        run: python .github/scripts/test_matrix.py .xrpld --base "${BASE_SHA}" | tee -a "${GITHUB_OUTPUT}"
 
   # All the recipes in one job per configuration, so that they share the
   # dependencies they build.
@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The runners and image are the ones rippled builds with, see
+        # The runners and image are the ones xrpld builds with, see
         # https://github.com/XRPLF/rippled/tree/develop/.github/scripts/strategy-matrix
         platform:
           - name: linux-gcc
@@ -85,12 +85,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Checkout rippled Conan configuration
+      - name: Checkout xrpld Conan configuration
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: XRPLF/rippled
-          ref: ${{ needs.list-recipes.outputs.rippled_sha }}
-          path: .rippled
+          ref: ${{ needs.list-recipes.outputs.xrpld_sha }}
+          path: .xrpld
           sparse-checkout: conan
           persist-credentials: false
 
@@ -113,7 +113,7 @@ jobs:
 
       - name: Setup Conan
         run: |
-          ./.rippled/conan/init.sh
+          ./.xrpld/conan/init.sh
           conan remote list
 
       - name: Create the recipe-test profile

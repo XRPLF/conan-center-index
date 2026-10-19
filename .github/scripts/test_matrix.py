@@ -55,8 +55,8 @@ def to_pairs(recipes: list[dict[str, str]]) -> str:
     return " ".join(f"{recipe['directory']}:{recipe['version']}" for recipe in recipes)
 
 
-def rippled_options(rippled: Path) -> list[str]:
-    inspect = json.loads(run("conan", "inspect", str(rippled / "conanfile.py"), "--format=json"))
+def xrpld_options(xrpld: Path) -> list[str]:
+    inspect = json.loads(run("conan", "inspect", str(xrpld / "conanfile.py"), "--format=json"))
     options = {key: value for key, value in inspect["default_options"].items() if "/" in key}
     options.update(OPTION_OVERRIDES)
     return [f"{key}={value}" for key, value in options.items()]
@@ -64,20 +64,20 @@ def rippled_options(rippled: Path) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("rippled", type=Path, help="the rippled checkout")
+    parser.add_argument("xrpld", type=Path, help="the xrpld checkout")
     parser.add_argument("--base", default="", help="only test the recipes changed since this commit")
     args = parser.parse_args()
 
     recipes = list_recipes(Path("recipes.yml").read_text())
-    linux = json.loads((args.rippled / ".github/scripts/strategy-matrix/linux.json").read_text())
+    linux = json.loads((args.xrpld / ".github/scripts/strategy-matrix/linux.json").read_text())
 
     outputs = {
         "tests": to_pairs(changed_recipes(recipes, args.base)),
         # All of them, so that dependencies (e.g. grpc's abseil) resolve to the local recipes.
         "exports": to_pairs(recipes),
-        "options": " ".join(rippled_options(args.rippled)),
+        "options": " ".join(xrpld_options(args.xrpld)),
         # So that all the test jobs use the same commit, even if develop moves on.
-        "rippled_sha": run("git", "-C", str(args.rippled), "rev-parse", "HEAD").strip(),
+        "xrpld_sha": run("git", "-C", str(args.xrpld), "rev-parse", "HEAD").strip(),
         "linux_image": f"ghcr.io/xrplf/xrpld/nix-ubuntu:{linux['image_tag']}",
     }
     for key, value in outputs.items():
