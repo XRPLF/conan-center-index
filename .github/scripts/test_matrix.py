@@ -1,4 +1,4 @@
-"""Print the inputs of .github/workflows/test-recipes.yml as GitHub step outputs."""
+"""Print the inputs of .github/workflows/export.yml as GitHub step outputs."""
 
 import argparse
 import json
@@ -11,7 +11,7 @@ import yaml
 OPTION_OVERRIDES = {"xrpl-rpc-spec/*:server": "clio"}
 
 # Changing these tests all the recipes.
-CI_FILES = {".github/workflows/test-recipes.yml", ".github/scripts/test_matrix.py"}
+CI_FILES = {".github/workflows/export.yml", ".github/scripts/test_matrix.py"}
 
 
 def run(*command: str) -> str:
