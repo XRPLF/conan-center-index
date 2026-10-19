@@ -144,10 +144,14 @@ jobs:
           TESTS: ${{ needs.list-recipes.outputs.tests }}
         run: |
           for test in ${TESTS}; do
-              conan create "${test%:*}" \
-                  --version="${test#*:}" \
+              directory="${test%:*}"
+              version="${test#*:}"
+              echo "::group::$(basename "$(dirname "${directory}")")/${version}"
+              conan create "${directory}" \
+                  --version="${version}" \
                   --profile:all recipe-test \
                   --build=missing \
                   --settings:all build_type="${BUILD_TYPE}" \
                   --conf:all tools.build:jobs="${BUILD_NPROC}"
+              echo "::endgroup::"
           done
