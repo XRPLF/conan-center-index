@@ -114,6 +114,18 @@ class Lean4DepsConan(ConanFile):
                 f"{self.name}/{self.version}: Windows is not supported yet"
             )
 
+    def validate_build(self):
+        # The tool_requires lean4 is the build platform's, and its bundled clang
+        # gets no target flag, so the objects would be build-platform code under
+        # the host package_id.
+        if (
+            str(self.settings.os) != str(self.settings_build.os)
+            or str(self.settings.arch) != str(self.settings_build.arch)
+        ):
+            raise ConanInvalidConfiguration(
+                f"{self.name}/{self.version}: cross-building is not supported"
+            )
+
     def build_requirements(self):
         self.tool_requires(f"lean4/{self.version}")
 
@@ -311,15 +323,26 @@ class Lean4DepsConan(ConanFile):
         for symlink, target in zip(symlinks, objects):
             symlink.symlink_to(target)
 
+        # Member names only, with llvm-ar run inside symlink_dir: llvm-ar splits
+        # response-file entries on whitespace, so an absolute build path with a
+        # space in it would break the batch. The archive stores basenames
+        # anyway, so the result is unchanged.
         response_file = build_dir / "lean_deps_objects.rsp"
         response_file.write_text(
-            "".join(f"{symlink}\n" for symlink in symlinks), encoding="utf-8"
+            "".join(f"{symlink.name}\n" for symlink in symlinks), encoding="utf-8"
         )
 
+        # `q` appends, so a leftover archive from an earlier run in the same
+        # build folder would keep its stale members.
+        archive = build_dir / ARCHIVE_NAME
+        if archive.exists():
+            archive.unlink()
         # Taken from the toolchain rather than PATH, so this reads standalone
         # and cannot pick up a different ar.
-        archive = build_dir / ARCHIVE_NAME
-        self.run(f'"{Path(bindir) / "llvm-ar"}" qcs "{archive}" "@{response_file}"')
+        self.run(
+            f'"{Path(bindir) / "llvm-ar"}" qcs "{archive}" "@{response_file}"',
+            cwd=symlink_dir,
+        )
 
     def package(self):
         build_dir = Path(self.build_folder)
