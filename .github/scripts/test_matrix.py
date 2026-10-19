@@ -30,7 +30,7 @@ def list_recipes(recipes_yml: str) -> list[dict[str, str]]:
 
 def changed_recipes(recipes: list[dict[str, str]], base: str) -> list[dict[str, str]]:
     """The recipes changed since `base`, or all of them if that can't be determined."""
-    if not base or set(base) == {"0"}:
+    if not base:
         return recipes
     try:
         if subprocess.run(["git", "cat-file", "-e", f"{base}^{{commit}}"], capture_output=True).returncode != 0:
@@ -41,10 +41,7 @@ def changed_recipes(recipes: list[dict[str, str]], base: str) -> list[dict[str, 
     if CI_FILES.intersection(changed_files):
         return recipes
 
-    try:
-        old_references = set(yaml.safe_load(run("git", "show", f"{base}:recipes.yml"))["recipes"])
-    except subprocess.CalledProcessError:
-        old_references = set()
+    old_references = set(yaml.safe_load(run("git", "show", f"{base}:recipes.yml"))["recipes"])
     return [
         recipe
         for recipe in recipes

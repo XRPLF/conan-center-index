@@ -9,5 +9,5 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_11)
 
 add_executable(${PROJECT_NAME}_c test_package.c)
 target_link_libraries(${PROJECT_NAME}_c PRIVATE Snappy::snappy)
-# The recipe doesn't list the C++ standard library in system_libs
+# The recipe deliberately doesn't list the C++ standard library in system_libs
 set_target_properties(${PROJECT_NAME}_c PROPERTIES LINKER_LANGUAGE CXX)

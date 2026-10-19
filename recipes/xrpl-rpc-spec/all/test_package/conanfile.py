@@ -12,6 +12,7 @@ class TestPackageConan(ConanFile):
 
     default_options = {
         "xrpl-rpc-spec/*:server": "clio",
+        "xrpl/*:benchmark": False,
         "xrpl/*:rocksdb": True,
         "xrpl/*:tests": False,
     }
