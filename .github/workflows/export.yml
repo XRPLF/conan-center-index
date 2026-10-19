@@ -185,7 +185,8 @@ jobs:
               echo "::endgroup::"
           done
 
-      # Only what was built, so the recipes that were only exported aren't uploaded.
+      # Only what was built here, as `conan upload '*'` would also publish the
+      # recipes that were exported but not tested in this run.
       - name: List the built packages
         run: |
           lists=()
@@ -195,6 +196,10 @@ jobs:
           done
           conan pkglist merge "${lists[@]}" --format=json >"${RUNNER_TEMP}/built.json"
           cat "${RUNNER_TEMP}/built.json"
+
+      - name: Upload the built packages (dry run)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: conan upload --list="${RUNNER_TEMP}/built.json" --remote=xrplf --confirm --check --dry-run
 
       - name: Upload the built packages
         if: ${{ github.repository_owner == 'XRPLF' && github.event_name != 'pull_request' }}
