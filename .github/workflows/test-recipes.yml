@@ -127,8 +127,11 @@ jobs:
                   echo "${option}"
               done
           } >"$(conan config home)/profiles/recipe-test"
-          conan profile show --profile:all recipe-test
 
+      - name: Show the recipe-test profile
+        run: conan profile show --profile:all recipe-test
+
+      # Not export_all.sh, as it needs yq, which the test runners may not have.
       - name: Export the recipes
         env:
           EXPORTS: ${{ needs.list-recipes.outputs.exports }}
