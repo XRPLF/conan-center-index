@@ -39,11 +39,15 @@ jobs:
 
       - name: Generate the test inputs
         id: inputs
-        run: python .github/scripts/test_matrix.py .rippled | tee -a "${GITHUB_OUTPUT}"
+        env:
+          # Empty on manual runs, so all the recipes are tested.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python .github/scripts/test_matrix.py .rippled --base "${BASE_SHA}" | tee -a "${GITHUB_OUTPUT}"
 
   test:
     name: ${{ matrix.recipe.reference }} (${{ matrix.platform.name }}, ${{ matrix.build_type }})
     needs: list-recipes
+    if: ${{ needs.list-recipes.outputs.recipes != '[]' }}
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +124,6 @@ jobs:
           } >"$(conan config home)/profiles/recipe-test"
           conan profile show --profile:all recipe-test
 
-      # So that dependencies (e.g. grpc's abseil) resolve to the local recipes.
       - name: Export the recipes
         env:
           EXPORTS: ${{ needs.list-recipes.outputs.exports }}
