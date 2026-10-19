@@ -53,6 +53,11 @@ def changed_recipes(recipes: list[dict[str, str]], base: str) -> list[dict[str, 
     ]
 
 
+def to_pairs(recipes: list[dict[str, str]]) -> str:
+    """As "<directory>:<version>" pairs, as the test runners may not have Python with PyYAML, yq or jq."""
+    return " ".join(f"{recipe['directory']}:{recipe['version']}" for recipe in recipes)
+
+
 def rippled_options(rippled: Path) -> list[str]:
     inspect = json.loads(run("conan", "inspect", str(rippled / "conanfile.py"), "--format=json"))
     options = {key: value for key, value in inspect["default_options"].items() if "/" in key}
@@ -70,10 +75,9 @@ def main() -> None:
     linux = json.loads((args.rippled / ".github/scripts/strategy-matrix/linux.json").read_text())
 
     outputs = {
-        "recipes": json.dumps(changed_recipes(recipes, args.base), separators=(",", ":")),
+        "tests": to_pairs(changed_recipes(recipes, args.base)),
         # All of them, so that dependencies (e.g. grpc's abseil) resolve to the local recipes.
-        # The test runners may not have Python with PyYAML, yq or jq.
-        "exports": " ".join(f"{recipe['directory']}:{recipe['version']}" for recipe in recipes),
+        "exports": to_pairs(recipes),
         "options": " ".join(rippled_options(args.rippled)),
         # So that all the test jobs use the same commit, even if develop moves on.
         "rippled_sha": run("git", "-C", str(args.rippled), "rev-parse", "HEAD").strip(),
