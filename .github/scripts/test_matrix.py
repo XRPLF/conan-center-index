@@ -7,8 +7,8 @@ from pathlib import Path
 
 import yaml
 
-# The consumer's choice, xrpl-rpc-spec's test_package sets its own.
-EXCLUDED_OPTIONS = {"xrpl-rpc-spec/*:server"}
+# xrpl-rpc-spec's test_package is written for Clio.
+OPTION_OVERRIDES = {"xrpl-rpc-spec/*:server": "clio"}
 
 # Changing these tests all the recipes.
 CI_FILES = {".github/workflows/test-recipes.yml", ".github/scripts/test_matrix.py"}
@@ -55,11 +55,9 @@ def changed_recipes(recipes: list[dict[str, str]], base: str) -> list[dict[str, 
 
 def rippled_options(rippled: Path) -> list[str]:
     inspect = json.loads(run("conan", "inspect", str(rippled / "conanfile.py"), "--format=json"))
-    return [
-        f"{key}={value}"
-        for key, value in inspect["default_options"].items()
-        if "/" in key and key not in EXCLUDED_OPTIONS
-    ]
+    options = {key: value for key, value in inspect["default_options"].items() if "/" in key}
+    options.update(OPTION_OVERRIDES)
+    return [f"{key}={value}" for key, value in options.items()]
 
 
 def main() -> None:
