@@ -14,4 +14,4 @@ recipes:
   - wasm-xrplf/2.4.1-xrplf
   - wasmi/1.0.6
   - wasmi/1.0.9
-  - xrpl-rpc-spec/0.1.29
+  - xrpl-rpc-spec/0.1.30
