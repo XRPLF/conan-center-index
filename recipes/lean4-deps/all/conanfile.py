@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 from io import StringIO
@@ -6,27 +7,10 @@ from pathlib import Path
 from conan import ConanFile
 from conan.errors import ConanException, ConanInvalidConfiguration
 from conan.tools.build import build_jobs
+from conan.tools.env import Environment
 from conan.tools.files import copy
 
 required_conan_version = ">=2.0.0"
-
-# The Lean libraries reachable from mathlib. `:static` compiles each module's
-# generated C to a native object; the archive itself is assembled by
-# _bundle_deps rather than by lake, for the reason given in _build_targets.
-#
-# `Cli` is absent because it compiles nothing -- it is pulled in for its oleans
-# only. Nothing needs to know that, though: it has no generated C either, so it
-# drops out of the check in _verified_objects on its own.
-DEP_TARGETS = [
-    "ProofWidgets:static",
-    "ImportGraph:static",
-    "LeanSearchClient:static",
-    "Plausible:static",
-    "Aesop:static",
-    "Qq:static",
-    "Batteries:static",
-    "Mathlib:static",
-]
 
 PACKAGES_DIR = "packages"
 LIB_DIR = "lib"
@@ -41,34 +25,43 @@ class Lean4DepsConan(ConanFile):
     Downloads mathlib's olean cache and compiles the dependency `:static`
     objects once, bundling them into lib/libLeanDeps.a. Consumers get both the
     elaboration artifacts (the olean tree, so lake can resolve imports) and the
-    native objects, so they never compile mathlib themselves.
+    native objects, so they never compile mathlib themselves. One archive
+    rather than lake's per-library ones, so consumers need no link order.
 
     The version tracks the Lean toolchain: mathlib tags releases against a
     toolchain, so lean4-deps/X.Y.Z bundles the mathlib revision pinned for Lean
-    X.Y.Z. That coupling is what puts the Lean version into this package's
-    identity -- Conan excludes tool_requires from package_id by default, and
-    oleans are only loadable by the exact Lean release that produced them.
+    X.Y.Z. lean4/X.Y.Z is both the tool that builds this package and a host
+    requirement: the objects reference Init/Std/Lean and the runtime in
+    libleanshared (and Lake, through ImportGraph), so lean4-deps::lean4-deps
+    links lean4 transitively and the two versions cannot drift apart.
 
     The pinned dependency closure lives in lake/<version>/lake-manifest.json,
     exported alongside this recipe and packaged so consumers can check it. What
     has to agree is the `packages` array -- the name and revision of every
     entry -- not the whole file: the root `name` deliberately differs from any
     consumer's. If the closures diverge, lake re-resolves and the prebuilt
-    oleans go unused.
+    oleans go unused. The `:static` targets to build for each version are in
+    conandata.yml (`dep_targets`), next to the version's other data.
 
-    Each dependency keeps its `.git` directory. Lake resolves a dependency's
+    Each dependency keeps a `.git` directory. Lake resolves a dependency's
     revision and URL from it; without it lake treats the URL as changed,
     deletes the directory, re-clones and rebuilds everything -- inside this
-    package. A consumer's `lake build` also runs `git diff HEAD` in each
-    dependency, which may rewrite `.git/index`; package() prepares the
-    repositories to prevent that, but if it happens
-    `conan cache check-integrity` reports this package as modified. Harmless
-    for the build.
+    package. Only a shallow repository is kept (one commit, the pinned
+    revision), which satisfies everything lake checks: `git rev-parse HEAD`,
+    `git remote get-url origin` and a clean `git diff HEAD`. That last check
+    may rewrite `.git/index`; package() prepares the repositories to prevent
+    that, but if it happens `conan cache check-integrity` reports this package
+    as modified. Harmless for the build.
+
+    Building needs `git` (lake clones the dependencies, and package() rewrites
+    their repositories) and `curl` (mathlib's cache tool downloads with it) on
+    PATH, plus network access.
     """
 
     name = "lean4-deps"
     description = "Prebuilt Lean 4 mathlib and its dependency closure"
-    license = "Apache-2.0"
+    # Cli is MIT; the rest of the closure is Apache-2.0.
+    license = ("Apache-2.0", "MIT")
     url = "https://github.com/XRPLF/conan-center-index"
     homepage = "https://github.com/leanprover-community/mathlib4"
     topics = ("lean", "lean4", "mathlib", "formal-verification", "pre-built")
@@ -80,6 +73,10 @@ class Lean4DepsConan(ConanFile):
     # the Lean toolchain's own bundled clang.
     settings = "os", "arch"
 
+    @property
+    def _dep_targets(self):
+        return self.conan_data["dep_targets"][self.version]
+
     def export_sources(self):
         # The lake pin, one workspace per version under lake/<version>/, flattened
         # into the source root. lakefile.toml declares the workspace,
@@ -89,12 +86,15 @@ class Lean4DepsConan(ConanFile):
         # get` reads it directly, throwing "no such file or directory" when it is
         # absent and refusing to use the olean cache (exit 1) when it disagrees
         # with mathlib's own toolchain. Do not drop it.
-        copy(
-            self,
-            "*",
-            src=os.path.join(self.recipe_folder, "lake", self.version),
-            dst=self.export_sources_folder,
-        )
+        workspace = os.path.join(self.recipe_folder, "lake", self.version)
+        for name in ("lakefile.toml", "lake-manifest.json", "lean-toolchain"):
+            if not os.path.isfile(os.path.join(workspace, name)):
+                raise ConanException(
+                    f"{self.name}/{self.version}: missing {name} in "
+                    f"lake/{self.version}/; each version needs its own lake "
+                    f"workspace there"
+                )
+        copy(self, "*", src=workspace, dst=self.export_sources_folder)
 
     def package_id(self):
         # Everything here is produced by the Lean toolchain's own bundled clang,
@@ -105,8 +105,7 @@ class Lean4DepsConan(ConanFile):
         # user.package:libc_version); clearing them keeps one binary per
         # platform, so a consumer whose profile differs from the publisher's
         # still gets a cache hit instead of rebuilding mathlib.
-        if self.info.conf is not None:
-            self.info.conf.clear()
+        self.info.conf.clear()
 
     def validate(self):
         if self.settings.os == "Windows":
@@ -117,7 +116,8 @@ class Lean4DepsConan(ConanFile):
     def validate_build(self):
         # The tool_requires lean4 is the build platform's, and its bundled clang
         # gets no target flag, so the objects would be build-platform code under
-        # the host package_id.
+        # the host package_id. validate_build rather than validate: consumers
+        # can still download correctly built host binaries.
         if (
             str(self.settings.os) != str(self.settings_build.os)
             or str(self.settings.arch) != str(self.settings_build.arch)
@@ -126,8 +126,22 @@ class Lean4DepsConan(ConanFile):
                 f"{self.name}/{self.version}: cross-building is not supported"
             )
 
+    def requirements(self):
+        # transitive_headers: anything that calls into the bundled objects
+        # needs lean.h for the runtime it talks to.
+        self.requires(f"lean4/{self.version}", transitive_headers=True)
+
     def build_requirements(self):
         self.tool_requires(f"lean4/{self.version}")
+
+    def _require_tools(self):
+        missing = [tool for tool in ("git", "curl") if shutil.which(tool) is None]
+        if missing:
+            raise ConanException(
+                f"{self.name}/{self.version}: {' and '.join(missing)} not found "
+                f"on PATH. lake clones the dependencies with git and mathlib's "
+                f"cache tool downloads with curl."
+            )
 
     def _require_toolchain_bindir(self):
         """The tool_requires toolchain, and only that one. Raises if it cannot run.
@@ -136,9 +150,6 @@ class Lean4DepsConan(ConanFile):
         traces, so a same-version but differently-built toolchain would produce
         oleans the published package cannot be reused with. Taking it from the
         dependency graph keeps the output reproducible.
-
-        The upstream release names the FHS loader (/lib64/ld-linux-x86-64.so.2)
-        in PT_INTERP, so it needs that loader present -- on NixOS via nix-ld.
         """
         bindir = self.dependencies.build["lean4"].cpp_info.bindirs[0]
         probe = StringIO()
@@ -150,77 +161,56 @@ class Lean4DepsConan(ConanFile):
                 quiet=True,
             )
         except ConanException as exc:
+            hint = ""
+            if self.settings_build.os == "Linux":
+                # The upstream release names the FHS loader in PT_INTERP.
+                hint = (
+                    " On Linux they need the FHS loader "
+                    "/lib64/ld-linux-x86-64.so.2; NixOS provides it through "
+                    "nix-ld (programs.nix-ld.enable = true)."
+                )
             raise ConanException(
                 f"{self.name}/{self.version}: the lean4 package's binaries "
-                f"cannot be executed. They need the FHS loader "
-                f"/lib64/ld-linux-x86-64.so.2. On NixOS, provide it by enabling "
-                f"nix-ld (programs.nix-ld.enable = true); other distributions "
-                f"have it already."
+                f"cannot be executed.{hint}\n{probe.getvalue().strip()}"
             ) from exc
         return bindir
 
-    def _prepare_environment(self, bindir):
-        """Point the build at the toolchain in `bindir`, and size its job pool.
-
-        PATH -- put the toolchain first, so lake's own lookups (leanc, clang)
-        and the archive step's llvm-ar all resolve to the same install.
-
-        LEAN_CC -- leanc invokes it when set, and otherwise its own bundled
-        clang. It emits link flags assuming that clang's default library search
-        paths, so an ambient LEAN_CC pointing at the system compiler fails to
-        find Lean's bundled libc++/gmp/uv. It has to be *removed*, not emptied:
-        lake fails with "external command '' exited with code 255" on an empty
-        value. conan.tools.env.Environment.unset() only emits a real `unset` in
-        generated scripts; applied in-process it assigns an empty string.
-
-        LEAN_GITHASH -- overrides the githash lake keys its traces on. A dev
-        shell may export it for a different Lean build, which would make the
-        whole mathlib cache look stale.
-
-        LEAN_NUM_THREADS -- Lake 5 has no --jobs flag; its scheduler runs on
-        Lean's task runtime, which this sizes. Each job is a clang invocation on
-        generated C, so an unbounded pool OOMs a many-core, low-memory builder.
-
-        build() restores the environment afterwards: Lean's bin/ holds clang,
-        ld.lld and llvm-ar, which would otherwise shadow the compiler of every
-        package built later in the same `conan install`.
-        """
-        os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
-        os.environ.pop("LEAN_CC", None)
-        os.environ.pop("LEAN_GITHASH", None)
-        os.environ["LEAN_NUM_THREADS"] = str(build_jobs(self))
+    def generate(self):
+        # Applied by every self.run, and only there. Conan already puts the
+        # tool_requires' bin/ first on PATH.
+        #
+        # LEAN_CC -- leanc invokes it when set, and otherwise its own bundled
+        # clang. It emits link flags assuming that clang's default library
+        # search paths, so an ambient LEAN_CC pointing at the system compiler
+        # fails to find Lean's bundled libc++/gmp/uv. It has to be *removed*,
+        # not emptied: lake fails with "external command '' exited with code
+        # 255" on an empty value. The saved script emits a real `unset`.
+        #
+        # LEAN_GITHASH -- overrides the githash lake keys its traces on. A dev
+        # shell may export it for a different Lean build, which would make the
+        # whole mathlib cache look stale.
+        #
+        # LEAN_NUM_THREADS -- Lake 5 has no --jobs flag; its scheduler runs on
+        # Lean's task runtime, which this sizes. Each job is a clang invocation
+        # on generated C, so an unbounded pool OOMs a many-core, low-memory
+        # builder.
+        env = Environment()
+        env.unset("LEAN_CC")
+        env.unset("LEAN_GITHASH")
+        env.define("LEAN_NUM_THREADS", str(build_jobs(self)))
+        env.vars(self).save_script("lean_env")
 
     def build(self):
-        bindir = self._require_toolchain_bindir()
-        saved_environ = dict(os.environ)
-        try:
-            self._prepare_environment(bindir)
-            self._build(Path(bindir))
-        finally:
-            os.environ.clear()
-            os.environ.update(saved_environ)
-
-    def _build(self, bindir):
+        self._require_tools()
+        bindir = Path(self._require_toolchain_bindir())
         lake = bindir / "lake"
-
         # Capture lake's output and surface it only on failure: a successful run
         # emits tens of thousands of progress lines.
         log = StringIO()
         try:
-            self.run(
-                f'"{lake}" exe cache get',
-                cwd=self.build_folder,
-                stdout=log,
-                stderr=log,
-            )
-            lake_failed = self._build_targets(lake, log)
-            objects = self._verified_objects()
-            if lake_failed:
-                self.output.warning(
-                    f"{self.name}: tolerating lake's failure, all "
-                    f"{len(objects)} objects are present (expected on macOS, "
-                    f"see _build_targets)"
-                )
+            for command in ("exe cache get", "build " + " ".join(self._dep_targets)):
+                self.run(f'"{lake}" {command}', cwd=self.build_folder, stdout=log, stderr=log)
+            objects = self._objects()
             self._bundle_deps(objects, bindir)
         except Exception:
             self.output.error(log.getvalue())
@@ -229,120 +219,42 @@ class Lean4DepsConan(ConanFile):
             f"{self.name}: compiled {len(objects)} objects into {ARCHIVE_NAME}"
         )
 
-    def _build_targets(self, lake, log):
-        """Compile DEP_TARGETS. Returns True if lake reported a failure.
-
-        lake's `:static` step archives a library by passing every object on one
-        command line -- 1,155,381 bytes across 7,652 arguments for mathlib. That
-        sits comfortably under Linux's limit (a quarter of the stack rlimit) but
-        over macOS's fixed kern.argmax of 1 MiB, so on macOS lake fails after
-        every object has already been compiled.
-
-        We never use lake's archives -- _bundle_deps builds its own with a
-        response file -- so that failure is harmless. Harmless only if the
-        objects really are all there, though, so the status is returned rather
-        than discarded and _verified_objects has to pass either way.
-        """
-        try:
-            self.run(
-                f'"{lake}" build ' + " ".join(DEP_TARGETS),
-                cwd=self.build_folder,
-                stdout=log,
-                stderr=log,
-            )
-        except ConanException:
-            return True
-        return False
-
-    def _verified_objects(self):
-        """The native objects, checked against the C sources they come from.
-
-        A lake failure is tolerated above, so something else has to establish
-        that the compilation really finished. Every generated `.c` must have a
-        matching `.c.o.export`: the sources arrive with `lake exe cache get`,
-        independently of the compile, so they are an authoritative statement of
-        what should have been built. That catches a dependency which failed
-        outright and one which compiled only partially -- neither of which is
-        visible in an object count.
-
-        Returned sorted by path relative to the packages tree. The order is
-        load-bearing: _bundle_deps names archive members positionally, so
-        directory iteration order would otherwise leak into the archive bytes
-        and the same objects would produce a different archive on every builder.
-
-        ir/Cache/ is skipped: those belong to mathlib's own `cache` executable,
-        the tool `lake exe cache get` runs. Build tooling, not library code a
-        consumer links against.
-        """
+    def _objects(self):
+        """Every `.c.o.export` under the dependency tree, sorted by relative
+        path so the archive is byte-for-byte the same on every builder.
+        ir/Cache/ belongs to mathlib's own `cache` executable, the tool
+        `lake exe cache get` runs, not library code."""
         packages_dir = Path(self.build_folder) / ".lake" / PACKAGES_DIR
-        sources, objects = set(), {}
-        for dirpath, _dirs, filenames in os.walk(packages_dir):
-            if "/ir/Cache/" in (dirpath.replace("\\", "/") + "/"):
-                continue
-            for name in filenames:
-                path = Path(dirpath) / name
-                key = str(path.relative_to(packages_dir))
-                if name.endswith(".c.o.export"):
-                    objects[key[: -len(".c.o.export")]] = path
-                elif name.endswith(".c"):
-                    sources.add(key[: -len(".c")])
-
-        # Guard the degenerate case first: with no sources at all the
-        # comparison below would pass vacuously.
-        if not sources:
-            raise ConanException(
-                f"{self.name}: no generated C sources under {packages_dir}, so "
-                f"there is nothing to verify the objects against. Expected "
-                f"`lake exe cache get` to have populated the dependency tree."
-            )
-        missing = sorted(sources - set(objects))
-        if missing:
-            raise ConanException(
-                f"{self.name}: {len(missing)} of {len(sources)} generated C "
-                f"sources have no compiled object, so the build did not "
-                f"finish: " + ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
-            )
-        # Sorted on the full relative path rather than the suffix-stripped key:
-        # the two differ (an apostrophe sorts before the '.' of the suffix, as
-        # in Mathlib/Tactic/LinearCombination') and the archive member's
-        # identity is the full path.
-        return sorted(objects.values(), key=lambda p: str(p.relative_to(packages_dir)))
+        objects = [
+            path
+            for path in packages_dir.rglob("*.c.o.export")
+            if "/ir/Cache/" not in path.as_posix()
+        ]
+        if not objects:
+            raise ConanException(f"{self.name}: lake built no objects under {packages_dir}")
+        return sorted(objects, key=lambda p: p.relative_to(packages_dir).as_posix())
 
     def _bundle_deps(self, objects, bindir):
-        # Two limits to dodge when archiving ~8,000 objects:
-        #  - llvm-ar rejects the batch on long member names, so each object gets
-        #    a short-named symlink;
-        #  - the full path list overflows ARG_MAX, so it goes in a @response
-        #    file rather than on the command line.
+        # ~8,000 paths overflow ARG_MAX, so they go in a @response file. llvm-ar
+        # tokenizes it like a shell: an unquoted apostrophe (as in
+        # Mathlib/Tactic/LinearCombination') opens a string and swallows the
+        # following lines, so each path is quoted and escaped, as lake does.
         build_dir = Path(self.build_folder)
-        symlink_dir = build_dir / "lean_deps_symlinks"
-        shutil.rmtree(symlink_dir, ignore_errors=True)
-        symlink_dir.mkdir()
-
-        symlinks = [symlink_dir / f"obj{i}.o" for i in range(len(objects))]
-        for symlink, target in zip(symlinks, objects):
-            symlink.symlink_to(target)
-
-        # Member names only, with llvm-ar run inside symlink_dir: llvm-ar splits
-        # response-file entries on whitespace, so an absolute build path with a
-        # space in it would break the batch. The archive stores basenames
-        # anyway, so the result is unchanged.
         response_file = build_dir / "lean_deps_objects.rsp"
         response_file.write_text(
-            "".join(f"{symlink.name}\n" for symlink in symlinks), encoding="utf-8"
+            "".join(
+                '"' + str(path).replace("\\", "\\\\").replace('"', '\\"') + '"\n'
+                for path in objects
+            ),
+            encoding="utf-8",
         )
-
         # `q` appends, so a leftover archive from an earlier run in the same
-        # build folder would keep its stale members.
+        # build folder would keep its stale members. llvm-ar taken from the
+        # toolchain rather than PATH, so this reads standalone.
         archive = build_dir / ARCHIVE_NAME
         if archive.exists():
             archive.unlink()
-        # Taken from the toolchain rather than PATH, so this reads standalone
-        # and cannot pick up a different ar.
-        self.run(
-            f'"{Path(bindir) / "llvm-ar"}" qcs "{archive}" "@{response_file}"',
-            cwd=symlink_dir,
-        )
+        self.run(f'"{bindir / "llvm-ar"}" qcs "{archive}" "@{response_file}"')
 
     def package(self):
         build_dir = Path(self.build_folder)
@@ -365,51 +277,85 @@ class Lean4DepsConan(ConanFile):
                 "*/.lake/build/bin/*",
             ],
         )
-        self._settle_git_indexes(package_dir / PACKAGES_DIR)
+        packages_dir = package_dir / PACKAGES_DIR
+        self._shallow_git_repos(packages_dir)
+        self._settle_git_indexes(packages_dir)
         copy(self, ARCHIVE_NAME, src=build_dir, dst=package_dir / LIB_DIR)
-        copy(
-            self,
-            "lake-manifest.json",
-            src=build_dir,
-            dst=package_dir,
-        )
-        copy(
-            self,
-            "LICENSE*",
-            src=build_dir / ".lake" / PACKAGES_DIR / "mathlib",
-            dst=package_dir / "licenses",
-        )
+        copy(self, "lake-manifest.json", src=build_dir, dst=package_dir)
+        self._package_licenses(build_dir, package_dir)
+
+    def _package_licenses(self, build_dir, package_dir):
+        # One directory per bundled project, named as in the manifest.
+        manifest = json.loads((build_dir / "lake-manifest.json").read_text(encoding="utf-8"))
+        for entry in manifest["packages"]:
+            name = entry["name"]
+            copied = copy(
+                self,
+                "LICENSE*",
+                src=build_dir / ".lake" / PACKAGES_DIR / name,
+                dst=package_dir / "licenses" / name,
+            )
+            if not copied:
+                raise ConanException(f"{self.name}: no LICENSE file in dependency {name}")
+
+    def _git(self, repo, args, capture=False):
+        out = StringIO() if capture else None
+        self.run(f'git -C "{repo}" {args}', stdout=out, quiet=capture)
+        return out.getvalue().strip() if capture else None
+
+    def _shallow_git_repos(self, packages_dir):
+        # lake clones every dependency in full; mathlib's history alone is
+        # several hundred MB. Replace each .git with a one-commit repository at
+        # the same HEAD and origin, fetched from the full clone next to it, so
+        # no network is needed. `read-tree` fills the index without touching
+        # the working tree; _settle_git_indexes then records the stat data.
+        for git_dir in sorted(packages_dir.glob("*/.git")):
+            repo = git_dir.parent
+            rev = self._git(repo, "rev-parse HEAD", capture=True)
+            url = self._git(repo, "remote get-url origin", capture=True)
+            full = git_dir.with_name(".git.full")
+            git_dir.rename(full)
+            self._git(repo, "init -q")
+            self._git(
+                repo,
+                f'-c uploadpack.allowAnySHA1InWant=true fetch -q --depth 1 '
+                f'"file://{full}" {rev}',
+            )
+            self._git(repo, f"update-ref HEAD {rev}")
+            self._git(repo, "read-tree HEAD")
+            self._git(repo, f'remote add origin "{url}"')
+            shutil.rmtree(full)
 
     def _settle_git_indexes(self, packages_dir):
         # Keep the consumer's `git diff HEAD` from rewriting `.git/index`.
         # Packaging and extraction keep mtimes and sizes but change inodes and
-        # ctimes, which git's default stat checks see as dirty. And lake's clone
-        # wrote each index in the same second as the checkout, so git smudged
-        # those "racily clean" entries; refreshing now, with every file older
-        # than the new index, records their real stat data. Extraction does not
-        # restore symlink mtimes, so tracked symlinks are marked unchanged.
+        # ctimes, which git's default stat checks see as dirty. The fresh index
+        # from `read-tree` has no stat data at all; refreshing now, with every
+        # file older than the new index, records it without "racily clean"
+        # smudging. Extraction does not restore symlink mtimes, so tracked
+        # symlinks are marked unchanged.
         for git_dir in sorted(packages_dir.glob("*/.git")):
             repo = git_dir.parent
             with open(git_dir / "config", "a", encoding="utf-8") as f:
                 f.write("[core]\n\tcheckStat = minimal\n\ttrustctime = false\n")
-            self.run(f'git -C "{repo}" update-index -q --refresh')
-            listing = StringIO()
-            self.run(f'git -C "{repo}" ls-files -s -z', stdout=listing, quiet=True)
+            self._git(repo, "update-index -q --refresh")
+            listing = self._git(repo, "ls-files -s -z", capture=True)
             symlinks = [
                 entry.split("\t", 1)[1]
-                for entry in listing.getvalue().split("\0")
+                for entry in listing.split("\0")
                 if entry.startswith("120000 ")
             ]
             if symlinks:
-                self.run(
-                    f'git -C "{repo}" update-index --assume-unchanged -- '
-                    + " ".join(f'"{path}"' for path in symlinks)
-                )
+                paths = git_dir / "conan-symlinks"
+                paths.write_bytes("\0".join(symlinks).encode("utf-8") + b"\0")
+                self._git(repo, f'update-index --assume-unchanged -z --stdin < "{paths}"')
+                paths.unlink()
 
     def package_info(self):
         package_dir = Path(self.package_folder)
         # libLeanDeps.a rides the ordinary CMake target, so consumers link
-        # lean4-deps::lean4-deps rather than being handed a path.
+        # lean4-deps::lean4-deps rather than being handed a path. lean4 comes
+        # with it through the host requirement.
         self.cpp_info.libs = ["LeanDeps"]
         self.cpp_info.libdirs = [LIB_DIR]
         self.cpp_info.includedirs = []
@@ -417,7 +363,7 @@ class Lean4DepsConan(ConanFile):
         # the olean tree, which cmake/XrplLean4.cmake symlinks in as the model's
         # .lake/packages, and the manifest this package was built against, which
         # the consumer checks its own pin against before trusting those oleans.
-        self.cpp_info.set_property("packages", str(package_dir / PACKAGES_DIR))
+        self.cpp_info.set_property("lean4_packages_dir", str(package_dir / PACKAGES_DIR))
         self.cpp_info.set_property(
-            "lake_manifest", str(package_dir / "lake-manifest.json")
+            "lean4_lake_manifest", str(package_dir / "lake-manifest.json")
         )

@@ -50,8 +50,7 @@ class Lean4Conan(ConanFile):
         # user.package:libc_version); clearing them keeps
         # one binary per platform, so a consumer whose profile differs from the
         # publisher's still gets a cache hit instead of re-downloading.
-        if self.info.conf is not None:
-            self.info.conf.clear()
+        self.info.conf.clear()
 
     def validate(self):
         # Also how Windows is rejected: upstream publishes a Windows release,
@@ -84,22 +83,34 @@ class Lean4Conan(ConanFile):
         # Keep the release layout as shipped: bin/ needs lib/lean/ beside it,
         # and lake resolves the stdlib relative to its own location.
         copy(self, "*", src=self._release_folder, dst=self.package_folder)
-        for name in ("LICENSE", "LICENSES/*"):
-            copy(
-                self,
-                name,
-                src=self._release_folder,
-                dst=os.path.join(self.package_folder, "licenses"),
-            )
+        # LICENSE is Lean's own; LICENSES collects the bundled third-party ones
+        # (LLVM, glibc, GMP, libuv, ...).
+        copy(
+            self,
+            "LICENSE*",
+            src=self._release_folder,
+            dst=os.path.join(self.package_folder, "licenses"),
+        )
 
     def package_info(self):
-        self.cpp_info.includedirs = ["include"]
-        self.cpp_info.libdirs = [os.path.join("lib", "lean")]
-        # Order matters: Lake before the runtime it depends on.
-        self.cpp_info.libs = ["Lake", "leanshared"]
-        # Conan puts bindirs on PATH for tool_requires consumers by itself, so
-        # no explicit buildenv_info is needed. lean4-deps does not rely on that
-        # either -- it resolves bindirs[0] and prepends it itself.
-        self.cpp_info.bindirs = ["bin"]
         self.cpp_info.set_property("cmake_file_name", "lean4")
         self.cpp_info.set_property("cmake_target_name", "lean4::lean4")
+        libdir = os.path.join("lib", "lean")
+        # Two components, so a consumer that only needs the runtime can link
+        # lean4::leanshared and skip libLake. lean4::lean4 carries both.
+        # Conan puts bindirs on PATH for tool_requires consumers by itself, so
+        # no explicit buildenv_info is needed.
+        leanshared = self.cpp_info.components["leanshared"]
+        leanshared.set_property("cmake_target_name", "lean4::leanshared")
+        leanshared.includedirs = ["include"]
+        leanshared.libdirs = [libdir]
+        leanshared.bindirs = ["bin"]
+        leanshared.libs = ["leanshared"]
+        lake = self.cpp_info.components["lake"]
+        lake.set_property("cmake_target_name", "lean4::lake")
+        lake.includedirs = []
+        lake.libdirs = [libdir]
+        lake.bindirs = []
+        lake.libs = ["Lake"]
+        # Lake depends on the runtime; the requires keeps the link order.
+        lake.requires = ["leanshared"]
