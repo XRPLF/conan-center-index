@@ -108,9 +108,9 @@ class Lean4DepsConan(ConanFile):
         self.info.conf.clear()
 
     def validate(self):
-        if self.settings.os == "Windows":
+        if str(self.settings.os) not in self.conan_data["platforms"]:
             raise ConanInvalidConfiguration(
-                f"{self.name}/{self.version}: Windows is not supported yet"
+                f"{self.name}/{self.version}: {self.settings.os} is not supported"
             )
 
     def validate_build(self):

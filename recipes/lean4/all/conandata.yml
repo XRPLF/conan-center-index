@@ -1,3 +1,10 @@
+# The os values (as in settings.yml) this recipe supports; validate() rejects
+# the others. The index CI reads it through `conan inspect`: a recipe that is
+# invalid on a platform it does not list is skipped there, on a listed one
+# that is an error.
+platforms:
+  - Linux
+  - Macos
 sources:
   "4.34.1":
     Linux:

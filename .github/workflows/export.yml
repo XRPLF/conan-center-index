@@ -169,11 +169,20 @@ jobs:
           BUILD_TYPE: ${{ matrix.build_type }}
           TESTS: ${{ needs.list-recipes.outputs.tests }}
         run: |
+          conan_os="${RUNNER_OS/macOS/Macos}"
           mkdir -p "${RUNNER_TEMP}/graphs"
           for test in ${TESTS}; do
               directory="${test%:*}"
               version="${test#*:}"
               name="$(basename "$(dirname "${directory}")")"
+              # A recipe whose conandata.yml has a `platforms` list (os values
+              # as in settings.yml, serialized by `conan inspect`) is only built
+              # on those. Everything else has to build everywhere.
+              platforms="$(conan inspect "${directory}" --format=json | sed -n '/"platforms": \[/,/\]/p')"
+              if [[ -n "${platforms}" ]] && ! grep -q "\"${conan_os}\"" <<<"${platforms}"; then
+                  echo "${name}/${version}: ${conan_os} is not in its conandata.yml platforms, skipped"
+                  continue
+              fi
               echo "::group::${name}/${version}"
               conan create "${directory}" \
                   --version="${version}" \
@@ -189,10 +198,17 @@ jobs:
       # recipes that were exported but not tested in this run.
       - name: List the built packages
         run: |
-          lists=()
+          shopt -s nullglob
+          # Seeded with an empty list: `conan pkglist merge` needs at least one,
+          # and a platform may have skipped every recipe. `conan upload` accepts
+          # the empty result.
+          mkdir -p "${RUNNER_TEMP}/built"
+          echo '{"Local Cache": {}}' >"${RUNNER_TEMP}/built/empty.json"
+          lists=(--list="${RUNNER_TEMP}/built/empty.json")
           for graph in "${RUNNER_TEMP}"/graphs/*.json; do
-              conan list --graph="${graph}" --graph-binaries=build --format=json >"${graph%.json}-built.json"
-              lists+=(--list="${graph%.json}-built.json")
+              built="${RUNNER_TEMP}/built/$(basename "${graph}")"
+              conan list --graph="${graph}" --graph-binaries=build --format=json >"${built}"
+              lists+=(--list="${built}")
           done
           conan pkglist merge "${lists[@]}" --format=json >"${RUNNER_TEMP}/built.json"
           cat "${RUNNER_TEMP}/built.json"

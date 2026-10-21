@@ -36,7 +36,7 @@ class Lean4Conan(ConanFile):
     settings = "os", "arch"
 
     @property
-    def _platforms(self):
+    def _releases(self):
         return self.conan_data["sources"][self.version]
 
     def layout(self):
@@ -53,10 +53,13 @@ class Lean4Conan(ConanFile):
         self.info.conf.clear()
 
     def validate(self):
-        # Also how Windows is rejected: upstream publishes a Windows release,
-        # but conandata.yml does not list one, so it lands here.
+        # Windows: upstream publishes a release, but it is not packaged yet.
         os_name, arch = str(self.settings.os), str(self.settings.arch)
-        if arch not in self._platforms.get(os_name, {}):
+        if os_name not in self.conan_data["platforms"]:
+            raise ConanInvalidConfiguration(
+                f"{self.name}/{self.version}: {os_name} is not supported"
+            )
+        if arch not in self._releases.get(os_name, {}):
             raise ConanInvalidConfiguration(
                 f"{self.name}/{self.version}: no upstream release for "
                 f"{os_name}/{arch}"
@@ -73,7 +76,7 @@ class Lean4Conan(ConanFile):
     def build(self):
         get(
             self,
-            **self._platforms[str(self.settings.os)][str(self.settings.arch)],
+            **self._releases[str(self.settings.os)][str(self.settings.arch)],
             destination=self._release_folder,
             strip_root=True,
             keep_permissions=True,
@@ -81,16 +84,25 @@ class Lean4Conan(ConanFile):
 
     def package(self):
         # Keep the release layout as shipped: bin/ needs lib/lean/ beside it,
-        # and lake resolves the stdlib relative to its own location.
-        copy(self, "*", src=self._release_folder, dst=self.package_folder)
-        # LICENSE is Lean's own; LICENSES collects the bundled third-party ones
-        # (LLVM, glibc, GMP, libuv, ...).
+        # and lake resolves the stdlib relative to its own location. The two
+        # licence files (LICENSES is a file, the third-party notices) move to
+        # licenses/ and are left out of the root: on a case-insensitive
+        # filesystem `LICENSES` and `licenses/` are the same path, and
+        # creating the directory next to the file fails on macOS.
         copy(
             self,
-            "LICENSE*",
+            "*",
             src=self._release_folder,
-            dst=os.path.join(self.package_folder, "licenses"),
+            dst=self.package_folder,
+            excludes=["LICENSE", "LICENSES"],
         )
+        for name in ("LICENSE", "LICENSES"):
+            copy(
+                self,
+                name,
+                src=self._release_folder,
+                dst=os.path.join(self.package_folder, "licenses"),
+            )
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "lean4")

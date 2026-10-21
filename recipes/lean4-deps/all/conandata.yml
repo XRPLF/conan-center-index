@@ -1,3 +1,11 @@
+# The os values (as in settings.yml) this recipe supports; validate() rejects
+# the others. The index CI reads it through `conan inspect`: a recipe that is
+# invalid on a platform it does not list is skipped there, on a listed one
+# that is an error.
+platforms:
+  - Linux
+  - Macos
+
 # lake fetches mathlib and its closure from the revisions pinned in
 # lake/<version>/lake-manifest.json, exported alongside this recipe;
 # conan.tools.files.get is never used here. `sources` exists because
