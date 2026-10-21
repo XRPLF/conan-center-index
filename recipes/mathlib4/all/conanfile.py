@@ -15,24 +15,24 @@ required_conan_version = ">=2.0.0"
 PACKAGES_DIR = "packages"
 LIB_DIR = "lib"
 # Keep in step with cpp_info.libs in package_info: the linker derives the file
-# name from the library name, so "LeanDeps" there means "libLeanDeps.a" here.
-ARCHIVE_NAME = "libLeanDeps.a"
+# name from the library name, so "mathlib4" there means "libmathlib4.a" here.
+ARCHIVE_NAME = "libmathlib4.a"
 
 
-class Lean4DepsConan(ConanFile):
+class Mathlib4Conan(ConanFile):
     """Prebuilt mathlib and its Lean dependency closure.
 
     Downloads mathlib's olean cache and compiles the dependency `:static`
-    objects once, bundling them into lib/libLeanDeps.a. Consumers get both the
+    objects once, bundling them into lib/libmathlib4.a. Consumers get both the
     elaboration artifacts (the olean tree, so lake can resolve imports) and the
     native objects, so they never compile mathlib themselves. One archive
     rather than lake's per-library ones, so consumers need no link order.
 
     The version tracks the Lean toolchain: mathlib tags releases against a
-    toolchain, so lean4-deps/X.Y.Z bundles the mathlib revision pinned for Lean
+    toolchain, so mathlib4/X.Y.Z bundles the mathlib revision pinned for Lean
     X.Y.Z. lean4/X.Y.Z is both the tool that builds this package and a host
     requirement: the objects reference Init/Std/Lean and the runtime in
-    libleanshared (and Lake, through ImportGraph), so lean4-deps::lean4-deps
+    libleanshared (and Lake, through ImportGraph), so mathlib4::mathlib4
     links lean4 transitively and the two versions cannot drift apart.
 
     The pinned dependency closure lives in lake/<version>/lake-manifest.json,
@@ -58,7 +58,7 @@ class Lean4DepsConan(ConanFile):
     PATH, plus network access.
     """
 
-    name = "lean4-deps"
+    name = "mathlib4"
     description = "Prebuilt Lean 4 mathlib and its dependency closure"
     # Cli is MIT; the rest of the closure is Apache-2.0.
     license = ("Apache-2.0", "MIT")
@@ -353,10 +353,10 @@ class Lean4DepsConan(ConanFile):
 
     def package_info(self):
         package_dir = Path(self.package_folder)
-        # libLeanDeps.a rides the ordinary CMake target, so consumers link
-        # lean4-deps::lean4-deps rather than being handed a path. lean4 comes
+        # libmathlib4.a rides the ordinary CMake target, so consumers link
+        # mathlib4::mathlib4 rather than being handed a path. lean4 comes
         # with it through the host requirement.
-        self.cpp_info.libs = ["LeanDeps"]
+        self.cpp_info.libs = ["mathlib4"]
         self.cpp_info.libdirs = [LIB_DIR]
         self.cpp_info.includedirs = []
         # Two things have no cpp_info equivalent, so they travel as properties:

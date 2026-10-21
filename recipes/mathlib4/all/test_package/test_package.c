@@ -5,7 +5,7 @@
 extern void lean_initialize(void);
 
 /* Module initializer of Qq's root module, a small member of the bundle that
- * depends only on Lean itself. Pulls objects out of libLeanDeps.a and resolves
+ * depends only on Lean itself. Pulls objects out of libmathlib4.a and resolves
  * their references into libleanshared. */
 extern lean_object *initialize_Qq_Qq(uint8_t builtin);
 
@@ -19,6 +19,6 @@ int main(void) {
     }
     lean_dec_ref(res);
     lean_io_mark_end_initialization();
-    puts("lean4-deps: Qq initialized");
+    puts("mathlib4: Qq initialized");
     return 0;
 }
