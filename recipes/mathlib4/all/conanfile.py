@@ -198,6 +198,10 @@ class Mathlib4Conan(ConanFile):
         env.unset("LEAN_CC")
         env.unset("LEAN_GITHASH")
         env.define("LEAN_NUM_THREADS", str(build_jobs(self)))
+        # mathlib's cache tool keeps its downloads (several GB of .ltar) in a
+        # per-user directory by default; under the build folder they go away
+        # with it instead of piling up on a builder.
+        env.define_path("MATHLIB_CACHE_DIR", os.path.join(self.build_folder, "mathlib-cache"))
         env.vars(self).save_script("lean_env")
 
     def build(self):
@@ -221,24 +225,40 @@ class Mathlib4Conan(ConanFile):
 
     def _objects(self):
         """Every `.c.o.export` under the dependency tree, sorted by relative
-        path so the archive is byte-for-byte the same on every builder.
-        ir/Cache/ belongs to mathlib's own `cache` executable, the tool
-        `lake exe cache get` runs, not library code."""
+        path so the archive is byte-for-byte the same on every builder. Every
+        generated `.c` must have one: lake's exit status already covers the
+        targets it built, this covers objects and sources disagreeing in any
+        other way. ir/Cache/ belongs to mathlib's own `cache` executable, the
+        tool `lake exe cache get` runs, not library code."""
         packages_dir = Path(self.build_folder) / ".lake" / PACKAGES_DIR
-        objects = [
-            path
+        relative = lambda path: path.relative_to(packages_dir).as_posix()
+        sources = {
+            relative(path)[: -len(".c")]
+            for path in packages_dir.rglob("*.c")
+            if "/.lake/build/ir/" in relative(path) and "/ir/Cache/" not in relative(path)
+        }
+        objects = {
+            relative(path)[: -len(".c.o.export")]: path
             for path in packages_dir.rglob("*.c.o.export")
-            if "/ir/Cache/" not in path.as_posix()
-        ]
-        if not objects:
-            raise ConanException(f"{self.name}: lake built no objects under {packages_dir}")
-        return sorted(objects, key=lambda p: p.relative_to(packages_dir).as_posix())
+            if "/ir/Cache/" not in relative(path)
+        }
+        missing = sorted(sources - objects.keys())
+        if not objects or missing:
+            raise ConanException(
+                f"{self.name}: {len(missing)} of {len(sources)} generated C sources have "
+                f"no object: " + ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
+            )
+        return [objects[key] for key in sorted(objects)]
 
     def _bundle_deps(self, objects, bindir):
         # ~8,000 paths overflow ARG_MAX, so they go in a @response file. llvm-ar
         # tokenizes it like a shell: an unquoted apostrophe (as in
         # Mathlib/Tactic/LinearCombination') opens a string and swallows the
         # following lines, so each path is quoted and escaped, as lake does.
+        # Members are stored by basename, so the archive holds many members
+        # of the same name (one Basic.c.o.export per directory). That is
+        # intentional: llvm-ar and the linker resolve by symbol, only
+        # extraction by name (`ar x`) would overwrite.
         build_dir = Path(self.build_folder)
         response_file = build_dir / "lean_deps_objects.rsp"
         response_file.write_text(
@@ -281,12 +301,16 @@ class Mathlib4Conan(ConanFile):
         self._shallow_git_repos(packages_dir)
         self._settle_git_indexes(packages_dir)
         copy(self, ARCHIVE_NAME, src=build_dir, dst=package_dir / LIB_DIR)
-        copy(self, "lake-manifest.json", src=build_dir, dst=package_dir)
+        # From the source folder, Conan's untouched copy of the exported
+        # workspace: lake may rewrite the build folder's manifest.
+        copy(self, "lake-manifest.json", src=self.source_folder, dst=package_dir)
         self._package_licenses(build_dir, package_dir)
 
     def _package_licenses(self, build_dir, package_dir):
         # One directory per bundled project, named as in the manifest.
-        manifest = json.loads((build_dir / "lake-manifest.json").read_text(encoding="utf-8"))
+        manifest = json.loads(
+            (Path(self.source_folder) / "lake-manifest.json").read_text(encoding="utf-8")
+        )
         for entry in manifest["packages"]:
             name = entry["name"]
             copied = copy(
