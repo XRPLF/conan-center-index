@@ -174,14 +174,26 @@ jobs:
               directory="${test%:*}"
               version="${test#*:}"
               name="$(basename "$(dirname "${directory}")")"
+              graph="${RUNNER_TEMP}/graphs/${name}-${version}.json"
               echo "::group::${name}/${version}"
-              conan create "${directory}" \
+              # Exit code 6 is ConanInvalidConfiguration: the recipe's validate()
+              # rejects this configuration, so it is skipped, as on ConanCenter.
+              # Any other failure fails the job. The graph is only kept on
+              # success, as a partial one is written on failure too.
+              if conan create "${directory}" \
                   --version="${version}" \
                   --profile:all recipe-test \
                   --build=missing \
                   --settings:all build_type="${BUILD_TYPE}" \
                   --conf:all tools.build:jobs="${BUILD_NPROC}" \
-                  --format=json >"${RUNNER_TEMP}/graphs/${name}-${version}.json"
+                  --format=json >"${graph}.tmp"; then
+                  mv "${graph}.tmp" "${graph}"
+              elif [[ $? -eq 6 ]]; then
+                  rm -f "${graph}.tmp"
+                  echo "${name}/${version}: invalid configuration, skipped"
+              else
+                  exit 1
+              fi
               echo "::endgroup::"
           done
 
@@ -189,10 +201,17 @@ jobs:
       # recipes that were exported but not tested in this run.
       - name: List the built packages
         run: |
-          lists=()
+          shopt -s nullglob
+          # Seeded with an empty list: `conan pkglist merge` needs at least one,
+          # and a platform may have skipped every recipe. `conan upload` accepts
+          # the empty result.
+          mkdir -p "${RUNNER_TEMP}/built"
+          echo '{"Local Cache": {}}' >"${RUNNER_TEMP}/built/empty.json"
+          lists=(--list="${RUNNER_TEMP}/built/empty.json")
           for graph in "${RUNNER_TEMP}"/graphs/*.json; do
-              conan list --graph="${graph}" --graph-binaries=build --format=json >"${graph%.json}-built.json"
-              lists+=(--list="${graph%.json}-built.json")
+              built="${RUNNER_TEMP}/built/$(basename "${graph}")"
+              conan list --graph="${graph}" --graph-binaries=build --format=json >"${built}"
+              lists+=(--list="${built}")
           done
           conan pkglist merge "${lists[@]}" --format=json >"${RUNNER_TEMP}/built.json"
           cat "${RUNNER_TEMP}/built.json"
