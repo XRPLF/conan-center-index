@@ -10,7 +10,8 @@ from conan.tools.build import build_jobs
 from conan.tools.env import Environment
 from conan.tools.files import copy
 
-required_conan_version = ">=2.0.0"
+# 2.1: `stderr` on self.run.
+required_conan_version = ">=2.1.0"
 
 PACKAGES_DIR = "packages"
 LIB_DIR = "lib"
@@ -48,10 +49,11 @@ class Mathlib4Conan(ConanFile):
     deletes the directory, re-clones and rebuilds everything -- inside this
     package. Only a shallow repository is kept (one commit, the pinned
     revision), which satisfies everything lake checks: `git rev-parse HEAD`,
-    `git remote get-url origin` and a clean `git diff HEAD`. That last check
-    may rewrite `.git/index`; package() prepares the repositories to prevent
-    that, but if it happens `conan cache check-integrity` reports this package
-    as modified. Harmless for the build.
+    `git remote get-url origin` and a clean `git diff HEAD`. The index is
+    packaged without stat data, so it is the same on every builder; the first
+    `git diff HEAD` on a consumer rehashes the tree once and writes the
+    refreshed index back, after which `conan cache check-integrity` reports
+    this package as modified. Harmless for the build.
 
     Building needs `git` (lake clones the dependencies, and package() rewrites
     their repositories) and `curl` (mathlib's cache tool downloads with it) on
@@ -198,8 +200,8 @@ class Mathlib4Conan(ConanFile):
         env.unset("LEAN_CC")
         env.unset("LEAN_GITHASH")
         env.define("LEAN_NUM_THREADS", str(build_jobs(self)))
-        # mathlib's cache tool keeps its downloads (several GB of .ltar) in a
-        # per-user directory by default; under the build folder they go away
+        # mathlib's cache tool keeps its downloads (hundreds of MB of .ltar) in
+        # a per-user directory by default; under the build folder they go away
         # with it instead of piling up on a builder.
         env.define_path("MATHLIB_CACHE_DIR", os.path.join(self.build_folder, "mathlib-cache"))
         env.vars(self).save_script("lean_env")
@@ -268,9 +270,10 @@ class Mathlib4Conan(ConanFile):
             ),
             encoding="utf-8",
         )
-        # `q` appends, so a leftover archive from an earlier run in the same
-        # build folder would keep its stale members. llvm-ar taken from the
-        # toolchain rather than PATH, so this reads standalone.
+        # `q` appends: a leftover archive (local `conan build` re-runs; Conan
+        # wipes the cache build folder itself) would keep its stale members.
+        # llvm-ar taken from the toolchain rather than PATH, so this reads
+        # standalone.
         archive = build_dir / ARCHIVE_NAME
         if archive.exists():
             archive.unlink()
@@ -283,7 +286,11 @@ class Mathlib4Conan(ConanFile):
         # re-elaborating mathlib. Excluded, as a model build never reads them:
         # the .c.o.export objects (bundled into the archive), each dependency's
         # own static library, and executables such as mathlib's `cache`. The
-        # .c sources must stay: lake treats a module without one as stale.
+        # object traces go with the objects, and the `setup.json` files are
+        # only read while compiling the module they belong to; both embed
+        # build-folder paths and would make every build a new package
+        # revision. The .c sources must stay: lake treats a module without
+        # one as stale.
         copy(
             self,
             "*",
@@ -291,6 +298,8 @@ class Mathlib4Conan(ConanFile):
             dst=package_dir / PACKAGES_DIR,
             excludes=[
                 "*.c.o.export",
+                "*.c.o.export.trace",
+                "*.setup.json",
                 "*.a",
                 "*.a.trace",
                 "*.a.rsp",
@@ -298,8 +307,8 @@ class Mathlib4Conan(ConanFile):
             ],
         )
         packages_dir = package_dir / PACKAGES_DIR
+        self._normalize_traces(packages_dir)
         self._shallow_git_repos(packages_dir)
-        self._settle_git_indexes(packages_dir)
         copy(self, ARCHIVE_NAME, src=build_dir, dst=package_dir / LIB_DIR)
         # From the source folder, Conan's untouched copy of the exported
         # workspace: lake may rewrite the build folder's manifest.
@@ -322,6 +331,26 @@ class Mathlib4Conan(ConanFile):
             if not copied:
                 raise ConanException(f"{self.name}: no LICENSE file in dependency {name}")
 
+    def _normalize_traces(self, packages_dir):
+        # Module traces lake wrote here (as opposed to the ones mathlib's cache
+        # ships) also carry the build log and the input paths, which name the
+        # build folder. Lake only decides on `depHash` and `outputs`, and reads
+        # the rest as optional, so keep exactly what the cache's traces have.
+        # Only lake's own output: ProofWidgets commits .trace files of its own
+        # in its source tree, and those must stay as checked in.
+        keep = ("schemaVersion", "depHash", "outputs")
+        rewritten = 0
+        for trace in packages_dir.rglob("*.trace"):
+            if "/.lake/build/" not in trace.as_posix():
+                continue
+            data = json.loads(trace.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and set(data) - set(keep):
+                trace.write_text(
+                    json.dumps({key: data[key] for key in keep if key in data}), encoding="utf-8"
+                )
+                rewritten += 1
+        self.output.info(f"{self.name}: trimmed {rewritten} module traces to depHash and outputs")
+
     def _git(self, repo, args, capture=False):
         out = StringIO() if capture else None
         self.run(f'git -C "{repo}" {args}', stdout=out, quiet=capture)
@@ -332,48 +361,35 @@ class Mathlib4Conan(ConanFile):
         # several hundred MB. Replace each .git with a one-commit repository at
         # the same HEAD and origin, fetched from the full clone next to it, so
         # no network is needed. `read-tree` fills the index without touching
-        # the working tree; _settle_git_indexes then records the stat data.
+        # the working tree and without stat data, so it has nothing that
+        # depends on the builder.
+        # Nothing that varies between builds is kept: no template files, no
+        # reflogs, no FETCH_HEAD.
+        template = packages_dir.parent / "git-template"
+        template.mkdir(exist_ok=True)
         for git_dir in sorted(packages_dir.glob("*/.git")):
             repo = git_dir.parent
             rev = self._git(repo, "rev-parse HEAD", capture=True)
             url = self._git(repo, "remote get-url origin", capture=True)
             full = git_dir.with_name(".git.full")
             git_dir.rename(full)
-            self._git(repo, "init -q")
+            self._git(repo, f'init -q --template="{template}"')
             self._git(
                 repo,
                 f'-c uploadpack.allowAnySHA1InWant=true fetch -q --depth 1 '
                 f'"file://{full}" {rev}',
             )
-            self._git(repo, f"update-ref HEAD {rev}")
+            self._git(repo, f"-c core.logAllRefUpdates=false update-ref HEAD {rev}")
             self._git(repo, "read-tree HEAD")
             self._git(repo, f'remote add origin "{url}"')
+            # The fetched pack reuses deltas from whatever pack the clone came
+            # with; a single-threaded repack from scratch is the same bytes on
+            # every builder.
+            self._git(repo, "-c pack.threads=1 repack -a -d -f -q")
             shutil.rmtree(full)
-
-    def _settle_git_indexes(self, packages_dir):
-        # Keep the consumer's `git diff HEAD` from rewriting `.git/index`.
-        # Packaging and extraction keep mtimes and sizes but change inodes and
-        # ctimes, which git's default stat checks see as dirty. The fresh index
-        # from `read-tree` has no stat data at all; refreshing now, with every
-        # file older than the new index, records it without "racily clean"
-        # smudging. Extraction does not restore symlink mtimes, so tracked
-        # symlinks are marked unchanged.
-        for git_dir in sorted(packages_dir.glob("*/.git")):
-            repo = git_dir.parent
-            with open(git_dir / "config", "a", encoding="utf-8") as f:
-                f.write("[core]\n\tcheckStat = minimal\n\ttrustctime = false\n")
-            self._git(repo, "update-index -q --refresh")
-            listing = self._git(repo, "ls-files -s -z", capture=True)
-            symlinks = [
-                entry.split("\t", 1)[1]
-                for entry in listing.split("\0")
-                if entry.startswith("120000 ")
-            ]
-            if symlinks:
-                paths = git_dir / "conan-symlinks"
-                paths.write_bytes("\0".join(symlinks).encode("utf-8") + b"\0")
-                self._git(repo, f'update-index --assume-unchanged -z --stdin < "{paths}"')
-                paths.unlink()
+            shutil.rmtree(git_dir / "logs", ignore_errors=True)
+            (git_dir / "FETCH_HEAD").unlink(missing_ok=True)
+        template.rmdir()
 
     def package_info(self):
         package_dir = Path(self.package_folder)
