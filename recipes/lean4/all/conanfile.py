@@ -53,12 +53,9 @@ class Lean4Conan(ConanFile):
         self.info.conf.clear()
 
     def validate(self):
-        # Windows: upstream publishes a release, but it is not packaged yet.
+        # No release listed in conandata.yml => ConanInvalidConfiguration.
+        # This specific error is then interpreted as "skip this combination" by the CI
         os_name, arch = str(self.settings.os), str(self.settings.arch)
-        if os_name not in self.conan_data["platforms"]:
-            raise ConanInvalidConfiguration(
-                f"{self.name}/{self.version}: {os_name} is not supported"
-            )
         if arch not in self._releases.get(os_name, {}):
             raise ConanInvalidConfiguration(
                 f"{self.name}/{self.version}: no upstream release for "

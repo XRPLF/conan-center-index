@@ -108,9 +108,9 @@ class Mathlib4Conan(ConanFile):
         self.info.conf.clear()
 
     def validate(self):
-        if str(self.settings.os) not in self.conan_data["platforms"]:
+        if self.settings.os == "Windows":
             raise ConanInvalidConfiguration(
-                f"{self.name}/{self.version}: {self.settings.os} is not supported"
+                f"{self.name}/{self.version}: Windows is not supported yet"
             )
 
     def validate_build(self):

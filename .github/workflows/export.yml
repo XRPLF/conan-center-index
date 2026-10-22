@@ -169,28 +169,31 @@ jobs:
           BUILD_TYPE: ${{ matrix.build_type }}
           TESTS: ${{ needs.list-recipes.outputs.tests }}
         run: |
-          conan_os="${RUNNER_OS/macOS/Macos}"
           mkdir -p "${RUNNER_TEMP}/graphs"
           for test in ${TESTS}; do
               directory="${test%:*}"
               version="${test#*:}"
               name="$(basename "$(dirname "${directory}")")"
-              # A recipe whose conandata.yml has a `platforms` list (os values
-              # as in settings.yml, serialized by `conan inspect`) is only built
-              # on those. Everything else has to build everywhere.
-              platforms="$(conan inspect "${directory}" --format=json | sed -n '/"platforms": \[/,/\]/p')"
-              if [[ -n "${platforms}" ]] && ! grep -q "\"${conan_os}\"" <<<"${platforms}"; then
-                  echo "${name}/${version}: ${conan_os} is not in its conandata.yml platforms, skipped"
-                  continue
-              fi
+              graph="${RUNNER_TEMP}/graphs/${name}-${version}.json"
               echo "::group::${name}/${version}"
-              conan create "${directory}" \
+              # Exit code 6 is ConanInvalidConfiguration: the recipe's validate()
+              # rejects this configuration, so it is skipped, as on ConanCenter.
+              # Any other failure fails the job. The graph is only kept on
+              # success, as a partial one is written on failure too.
+              if conan create "${directory}" \
                   --version="${version}" \
                   --profile:all recipe-test \
                   --build=missing \
                   --settings:all build_type="${BUILD_TYPE}" \
                   --conf:all tools.build:jobs="${BUILD_NPROC}" \
-                  --format=json >"${RUNNER_TEMP}/graphs/${name}-${version}.json"
+                  --format=json >"${graph}.tmp"; then
+                  mv "${graph}.tmp" "${graph}"
+              elif [[ $? -eq 6 ]]; then
+                  rm -f "${graph}.tmp"
+                  echo "${name}/${version}: invalid configuration, skipped"
+              else
+                  exit 1
+              fi
               echo "::endgroup::"
           done
 
