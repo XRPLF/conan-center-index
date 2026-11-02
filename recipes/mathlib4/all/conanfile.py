@@ -42,9 +42,6 @@ class Mathlib4Conan(ConanFile):
         # The lake workspace; `lake exe cache get` also reads lean-toolchain.
         copy(self, "*", src=os.path.join(self.recipe_folder, "lake", self.version), dst=self.export_sources_folder)
 
-    def package_id(self):
-        self.info.conf.clear()
-
     def validate(self):
         if self.settings.os == "Windows":
             raise ConanInvalidConfiguration(f"{self.ref}: Windows is not supported")

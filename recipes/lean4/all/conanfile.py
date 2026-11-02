@@ -4,7 +4,7 @@ from io import StringIO
 
 from conan import ConanFile
 from conan.errors import ConanException, ConanInvalidConfiguration
-from conan.tools.cmake import CMake, CMakeToolchain
+from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.gnu import PkgConfigDeps
 from conan.tools.scm import Git
 
@@ -26,21 +26,10 @@ class Lean4Conan(ConanFile):
     homepage = "https://github.com/leanprover/lean4"
     topics = ("lean", "lean4", "theorem-prover", "formal-verification")
 
-    # No build_type: Lean builds Release by default, which is what consumers
-    # want whatever their own build type.
-    settings = "os", "arch", "compiler"
+    settings = "os", "arch", "compiler", "build_type"
 
     def layout(self):
-        # Not cmake_layout, which needs build_type.
-        self.folders.source = "src"
-        self.folders.build = "build"
-        self.folders.generators = os.path.join("build", "generators")
-
-    def configure(self):
-        self.settings.rm_safe("compiler.cppstd")
-
-    def package_id(self):
-        self.info.conf.clear()
+        cmake_layout(self, src_folder="src")
 
     def validate(self):
         if self.settings.compiler == "msvc":
@@ -77,7 +66,7 @@ class Lean4Conan(ConanFile):
         compilers = self.conf.get("tools.build:compiler_executables", default={}, check_type=dict)
         tc.cache_variables["LEANC_CC"] = compilers.get("c", "cc")
 
-        # By default, the binaries embed the the builder's path for the compiler and libstdc++.
+        # By default, the binaries embed the builder's path for the compiler and libstdc++.
         # If the dev flake does not have the exact same paths, the binaries won't run.
         # Link libstdc++ statically on Linux (macOS's libc++ is a stable system library).
         if self.settings.os == "Linux" and str(self.settings.compiler.libcxx).startswith("libstdc++"):
