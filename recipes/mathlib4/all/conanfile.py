@@ -23,7 +23,8 @@ class Mathlib4Conan(ConanFile):
     The closure is pinned by lake/<version>/lake-manifest.json, packaged so
     consumers can check theirs matches.
 
-    Building needs `git` and `curl` on PATH and network access.
+    Building needs `git` and `curl` on PATH and network access, and with
+    apple-clang GNU ar (Homebrew `binutils`).
     """
 
     name = "mathlib4"
@@ -68,6 +69,12 @@ class Mathlib4Conan(ConanFile):
         env.define("LEAN_NUM_THREADS", str(build_jobs(self)))
         # Keep the cache tool's downloads (hundreds of MB) in the build folder.
         env.define_path("MATHLIB_CACHE_DIR", os.path.join(self.build_folder, "mathlib-cache"))
+        # lake archives through a response file, which Apple's ar cannot read.
+        # Homebrew's binutils is keg-only: gar is not linked onto PATH. A LEAN_AR already set wins.
+        if self.settings_build.get_safe("compiler") == "apple-clang" and not os.environ.get("LEAN_AR"):
+            binutils = StringIO()
+            self.run("brew --prefix binutils", stdout=binutils)
+            env.define_path("LEAN_AR", os.path.join(binutils.getvalue().strip(), "bin", "gar"))
         env.vars(self).save_script("lean_env")
 
     def build(self):
