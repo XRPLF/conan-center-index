@@ -118,7 +118,7 @@ jobs:
           persist-credentials: false
 
       - name: Prepare runner
-        uses: XRPLF/actions/prepare-runner@8e98d61f011fd2a67f3fde5f0f075662c099a527
+        uses: XRPLF/actions/prepare-runner@ba4475f58ef1ee5432a99db6f1d79911bf32e703
         with:
           enable_ccache: false
 
