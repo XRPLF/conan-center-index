@@ -160,7 +160,7 @@ class LibcurlConan(ConanFile):
 
     def requirements(self):
         if self.options.with_ssl == "openssl":
-            self.requires(f"openssl/[>=3 <4]")
+            self.requires("openssl/[>=3 <4]")
         elif self.options.with_ssl == "libressl":
             self.requires("libressl/[>=3.5 <4]")
         elif self.options.with_ssl == "wolfssl":
@@ -176,7 +176,7 @@ class LibcurlConan(ConanFile):
         if self.options.with_zlib:
             self.requires("zlib/[>=1.2.11 <2]")
         if self.options.with_brotli:
-            self.requires("brotli/1.1.0")
+            self.requires("brotli/[>=1.1.1 <2]")
         if self.options.with_zstd:
             self.requires("zstd/[~1.5]")
         if self.options.with_c_ares:
@@ -194,8 +194,9 @@ class LibcurlConan(ConanFile):
             openssl = self.dependencies["openssl"]
             if self.options.with_ntlm and openssl.options.no_des:
                 raise ConanInvalidConfiguration("option with_ntlm=True requires openssl/*:no_des=False")
-        if self.options.with_ssl == "wolfssl" and not self.dependencies["wolfssl"].options.with_curl:
-            raise ConanInvalidConfiguration("option with_ssl=wolfssl requires wolfssl/*:with_curl=True")
+        if self.options.with_ssl == "wolfssl" and not (self.dependencies["wolfssl"].options.with_curl and 
+                                                       (self.dependencies["wolfssl"].options.tls13 or self.dependencies["wolfssl"].options.with_quic)):
+            raise ConanInvalidConfiguration("option with_ssl=wolfssl requires wolfssl/*:with_curl=True and either wolfssl/*:tls13=True or wolfssl/*:with_quic=True")
         if self.options.get_safe("with_apple_sectrust") and self.options.with_ssl != "openssl":
             raise ConanInvalidConfiguration("Apple SecTrust is only supported for OpenSSL/GnuTLS builds")
 
@@ -218,8 +219,9 @@ class LibcurlConan(ConanFile):
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
         apply_conandata_patches(self)
-        cert_url = self.conf.get("user.libcurl.cert:url", check_type=str) or "https://curl.se/ca/cacert-2025-11-04.pem"
-        cert_sha256 = self.conf.get("user.libcurl.cert:sha256", check_type=str) or "8ac40bdd3d3e151a6b4078d2b2029796e8f843e3f86fbf2adbc4dd9f05e79def"
+        cert_url = self.conf.get("user.libcurl.cert:url", check_type=str) or self.conan_data["cacert"][self.version]["url"]
+        cert_sha256 = self.conf.get("user.libcurl.cert:sha256", check_type=str) or self.conan_data["cacert"][self.version]["sha256"]
+        self.output.info(f"Using CA certificate store: {cert_url} (sha256: {cert_sha256})")
         download(self, cert_url, "cacert.pem", verify=True, sha256=cert_sha256)
         replace_in_file(self, "CMakeLists.txt", "find_package(NGHTTP2 MODULE)", "find_package(NGHTTP2 CONFIG REQUIRED)")
         replace_in_file(self, "CMakeLists.txt", "find_package(Cares MODULE REQUIRED)", "find_package(Cares CONFIG REQUIRED)")
